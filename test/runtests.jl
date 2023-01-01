@@ -62,7 +62,7 @@ OM = (;O=objects, M=measurements)
         [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5])]
     @test joinindices((objects, measurements), by_key(@optic(_.obj)); groupby=1) ==
         [(1, [1, 2, 3, 4]), (2, [5])]
-    @test_broken joinindices(OM, by_key(@optic(_.obj)); groupby=:M)
+    @test joinindices(OM, by_key(@optic(_.obj)); groupby=:M) == [(O=[1], M=1), (O=[1], M=2), (O=[1], M=3), (O=[1], M=4), (O=[2], M=5)]
     test_unique_setequal(
         joinindices(OM, by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
         [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5]), (O=3, M=[]), (O=4, M=[]), (O=nothing, M=[6, 7, 8])]
