@@ -1,5 +1,9 @@
 function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, cache)
     last_optimized = prepare_for_join(cache, mode, last(datas), cond, last(multi))
+	fill_ix_array_!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, last_optimized)
+end
+
+function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
 	ix_seen_cnts = map(datas) do data
 		map(Returns(0), data)
 	end
