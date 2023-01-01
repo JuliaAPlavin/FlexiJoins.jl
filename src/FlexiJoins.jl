@@ -6,6 +6,7 @@ using Accessors
 using DataPipes
 using Indexing
 using SplitApplyCombine: mapview
+using IntervalSets
 
 
 export

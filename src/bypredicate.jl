@@ -12,46 +12,35 @@ innerfunc(f::ComposedFunction) = innerfunc(f.inner)
 innerfunc(f) = f
 stripinner(f::ComposedFunction) = f.inner isa ComposedFunction ? f.outer ∘ stripinner(f.inner) : f.outer
 
-function normalize_arg(cond::ByPred, datas::NamedTuple{NS}) where {NS}
-    @assert length(NS) == 2
-    # @assert innerfunc(cond.Lf) === Accessors.PropertyLens{NS[1]}()
-    # @assert innerfunc(cond.Rf) === Accessors.PropertyLens{NS[2]}()
-    # ByPred(stripinner(cond.Lf), stripinner(cond.Rf), cond.pred)
-    cond
-end
+normalize_arg(cond::ByPred, datas) = (@assert length(datas) == 2; cond)
+
+supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
+supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
 
 
-function optimize(which, datas, cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >))...}}, multi)
+function optimize(::Mode.Sort, which, datas, cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, multi)
     X = which(datas)
     (X, sortperm(X; by=which((cond.Lf, cond.Rf))))
 end
 
-findmatchix(cond::ByPred{typeof(<)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
+findmatchix(::Mode.Sort, cond::ByPred{typeof(<)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
     perm[searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) + 1:end]
 
-findmatchix(cond::ByPred{typeof(<=)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
+findmatchix(::Mode.Sort, cond::ByPred{typeof(<=)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
     perm[searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)):end]
 
-findmatchix(cond::ByPred{typeof(==)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
+findmatchix(::Mode.Sort, cond::ByPred{typeof(==)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
     perm[searchsorted(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
 
-findmatchix(cond::ByPred{typeof(>=)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
+findmatchix(::Mode.Sort, cond::ByPred{typeof(>=)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
     perm[begin:searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
 
-findmatchix(cond::ByPred{typeof(>)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
+findmatchix(::Mode.Sort, cond::ByPred{typeof(>)}, a, (B, perm)::Tuple, multi::typeof(identity)) =
     perm[begin:searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) - 1]
 
-function optimize(which, datas, cond::ByPred{typeof(∋)}, multi)
-    X = which(datas)
-    (X, sortperm(X; by=x -> which((cond.Lf, cond.Rf))(x)))
-end
-
-function findmatchix(cond::ByPred{typeof(∋)}, a, (B, perm)::Tuple, multi::typeof(identity))
+function findmatchix(::Mode.Sort, cond::ByPred{typeof(∋)}, a, (B, perm)::Tuple, multi::typeof(identity))
     rng = cond.Lf(a)
+    @assert rng isa Interval
     arr = mapview(i -> cond.Rf(B[i]), perm)
-    if rng isa AbstractArray || rng isa AbstractSet
-        @assert eltype(rng) == eltype(arr)
-        @assert rng isa UnitRange
-    end
     perm[searchsortedfirst(arr, minimum(rng)):searchsortedlast(arr, maximum(rng))]
 end

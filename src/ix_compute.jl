@@ -1,10 +1,11 @@
 function fill_ix_array!(IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality)
+    mode = best_mode(cond, datas)
+    last_optimized = optimize(mode, last, datas, cond, last(multi))
 	ix_seen_cnts = map(datas) do data
 		map(Returns(0), data)
 	end
-    last_optimized = optimize(last, datas, cond, last(multi))
 	for (ix_1, x_1) in pairs(first(datas))
-		IX_2 = findmatchix(cond, x_1, last_optimized, last(multi))
+		IX_2 = findmatchix(mode, cond, x_1, last_optimized, last(multi))
 		ix_seen_cnts[1][ix_1] += length(IX_2)
 		@assert length(IX_2) ∈ cardinality[2]
 		for ix_2 in IX_2

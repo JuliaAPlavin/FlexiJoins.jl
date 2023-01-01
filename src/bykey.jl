@@ -2,6 +2,10 @@ struct ByKey{TFs} <: JoinCondition
     keyfuncs::TFs
 end
 
+supports_mode(::Mode.NestedLoop, ::ByKey, datas) = true
+supports_mode(::Mode.SortChain, ::ByKey, datas) = true
+supports_mode(::Mode.Hash, ::ByKey, datas) = true
+
 # function index end
 # by_key(keyfunc::typeof(index)) = ByKey(only ∘ parentindices)
 by_key(keyfunc) = ByKey(keyfunc)
@@ -20,7 +24,7 @@ normalize_keyfunc(x::Symbol) = (Accessors.PropertyLens{x}(),)
 get_actual_keyfunc(x::Tuple) = arg -> map(el -> el(arg), x)
 
 
-function optimize(which, datas, cond::ByKey, multi::typeof(identity))
+function optimize(::Mode.Hash, which, datas, cond::ByKey, multi::typeof(identity))
     keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
     X = which(datas)
     dct = Dict{
@@ -33,7 +37,7 @@ function optimize(which, datas, cond::ByKey, multi::typeof(identity))
     return dct
 end
 
-function optimize(which, datas, cond::ByKey, multi::Union{typeof(first), typeof(last)})
+function optimize(::Mode.Hash, which, datas, cond::ByKey, multi::Union{typeof(first), typeof(last)})
     keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
     X = which(datas)
     dct = Dict{
@@ -47,8 +51,8 @@ function optimize(which, datas, cond::ByKey, multi::Union{typeof(first), typeof(
     return dct
 end
 
-findmatchix(cond::ByKey, a, B::Dict, multi::typeof(identity)) = get(B, get_actual_keyfunc(first(cond.keyfuncs))(a), valtype(B)())
-findmatchix(cond::ByKey, a, B::Dict, multi::Union{typeof(first), typeof(last)}) = let
+findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::typeof(identity)) = get(B, get_actual_keyfunc(first(cond.keyfuncs))(a), valtype(B)())
+findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::Union{typeof(first), typeof(last)}) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     haskey(B, k) ? [B[k]] : Vector{valtype(B)}()
 end

@@ -1,6 +1,20 @@
 abstract type JoinCondition end
 
-is_match(by::JoinCondition, a) = b -> is_match(by, a, b)
+module Mode
+struct Hash end
+struct SortChain end
+struct Sort end
+struct NestedLoop end
+end
+
+supports_mode(mode, cond, datas) = false
+supports_mode(::Mode.Sort, cond, datas) = supports_mode(Mode.SortChain(), cond, datas)
+
+best_mode(cond, datas) =
+    supports_mode(Mode.Hash(), cond, datas) ? Mode.Hash() :
+    supports_mode(Mode.Sort(), cond, datas) ? Mode.Sort() :
+    error("No known mode supported by $cond")
+
 
 struct CompositeCondition{TC} <: JoinCondition
     conds::TC
@@ -14,6 +28,12 @@ Base.:(&)(a::JoinCondition, b::CompositeCondition) = CompositeCondition((a, b.co
 Base.:(&)(a::CompositeCondition, b::CompositeCondition) = CompositeCondition((a.conds..., b.conds...))
 
 normalize_arg(cond::CompositeCondition, datas) = CompositeCondition(map(c -> normalize_arg(c, datas), cond.conds))
+
+supports_mode(mode::Mode.NestedLoop, cond::CompositeCondition, datas) = all(c -> supports_mode(mode, c, datas), cond.conds)
+supports_mode(mode::Mode.SortChain, cond::CompositeCondition, datas) = all(c -> supports_mode(mode, c, datas), cond.conds)
+supports_mode(mode::Mode.Sort, cond::CompositeCondition, datas) =
+    all(c -> supports_mode(Mode.SortChain(), c, datas), cond.conds[1:end-1]) && supports_mode(mode, last(cond.conds), datas)
+
 
 
 function closest end
