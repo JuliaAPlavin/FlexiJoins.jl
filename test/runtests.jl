@@ -385,37 +385,41 @@ end
 end
 
 @testset "other types" begin
-    @testset "tuple" begin
-        @test flexijoin((objects, measurements), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
-    end
+    @testset for mode in [nothing, Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]
+        @testset "tuple" begin
+            @test flexijoin((objects, measurements), by_key(:obj); mode) ==
+                [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+        end
 
-    @testset "structarray" begin
-        @test flexijoin((objects |> StructArray, measurements |> StructArray), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
-    end
+        @testset "structarray" begin
+            @test flexijoin((objects |> StructArray, measurements |> StructArray), by_key(:obj); mode) ==
+                [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+        end
 
-    @testset "typedtable" begin
-        @test flexijoin((objects |> Table, measurements |> Table), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
-    end
+        @testset "typedtable" begin
+            @test flexijoin((objects |> Table, measurements |> Table), by_key(:obj); mode) ==
+                [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+        end
 
-    @testset "offsetarray" begin
-        @test flexijoin((OffsetArray(objects, -100), measurements), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
-        @test flexijoin((objects, OffsetArray(measurements, 1000)), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
-        @test flexijoin((OffsetArray(objects, -100), OffsetArray(measurements, 1000)), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
-    end
+        @testset "offsetarray" begin
+            @test flexijoin((OffsetArray(objects, -100), measurements), by_key(:obj); mode) ==
+                [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+            @test flexijoin((objects, OffsetArray(measurements, 1000)), by_key(:obj); mode) ==
+                [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+            @test flexijoin((OffsetArray(objects, -100), OffsetArray(measurements, 1000)), by_key(:obj); mode) ==
+                [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+        end
 
-    @testset "dictionary" begin
-        @test flexijoin((objects, dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
-        @test flexijoin((dictionary(string.('w':'z') .=> objects), measurements), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
-        @test flexijoin((dictionary(string.('w':'z') .=> objects), dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj)) ==
-            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+        @testset "dictionary" begin
+            if mode != Mode.Sort()
+                @test flexijoin((objects, dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj); mode) ==
+                    [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+                @test flexijoin((dictionary(string.('w':'z') .=> objects), measurements), by_key(:obj); mode) ==
+                    [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+                @test flexijoin((dictionary(string.('w':'z') .=> objects), dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj); mode) ==
+                    [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+            end
+        end
     end
 end
 
