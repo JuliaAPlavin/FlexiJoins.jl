@@ -3,21 +3,18 @@ function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), A
 	fill_ix_array_!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, last_optimized)
 end
 
-const CNT_T = Int8
 function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
-	ix_seen_cnts = map(datas) do data
-		map(Returns(CNT_T(0)), data)
-	end
+	ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
 	@inbounds for (ix_1, x_1) in pairs(first(datas))
         IX_2 = findmatchix(mode, cond, x_1, last_optimized, last(multi))
-		ix_seen_cnts[1][ix_1] = min(ix_seen_cnts[1][ix_1] + length(IX_2), typemax(CNT_T))
-		@assert length(IX_2) ∈ cardinality[2]
+        add_to_cnt!(ix_seen_cnts[1], ix_1, length(IX_2), cardinality[1])
+		@assert cardinality_ok(length(IX_2), cardinality[2])
 		for ix_2 in IX_2
-			ix_seen_cnts[2][ix_2] = min(ix_seen_cnts[2][ix_2] + Int8(1), typemax(CNT_T))
+            add_to_cnt!(ix_seen_cnts[2], ix_2, true, cardinality[2])
 		end
         append_matchix!(IXs, (ix_1, IX_2), first(nonmatches), groupby)
 	end
-    @assert all(∈(cardinality[2]), ix_seen_cnts[2])
+    @assert all(cnt -> cardinality_ok(cnt, cardinality[2]), ix_seen_cnts[2])
 	append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 

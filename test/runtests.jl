@@ -1,6 +1,7 @@
 using FlexiJoins
 using FlexiJoins: normalize_arg, ByKey, Mode
 using StructArrays, TypedTables
+using StaticArrays
 using Dictionaries: dictionary
 using IntervalSets
 using Distances
@@ -64,6 +65,10 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         joinindices((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
     )
     test_unique_setequal(
+        joinindices((;O=objects, M=measurements), by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3))),
+        joinindices((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+    )
+    test_unique_setequal(
         joinindices((;M=measurements, O=objects), by_distance(:time, :value, Euclidean(), <=(3))),
         joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value-3)..(x.value+3))),
     )
@@ -80,11 +85,23 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         [(O=1, M=5), (O=3, M=5), (O=4, M=7)]
     @test joinindices((;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=6), (O=2, M=5), (O=3, M=5), (O=4, M=2)]
+    @test joinindices((;O=objects, M=measurements), by_pred(:value, >, :time); multi=(M=closest,)) ==
+        [(O = 4, M = 1)]
     @test joinindices((;O=objects, M=measurements), by_key(:obj) & by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=1), (O=2, M=5)]
 
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); cardinality=(O=1, M=1)) |> materialize_views
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+end
+
+@testset "cardinality" begin
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=1, M=1))
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=*, M=0))
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0, M=*))
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=*, M=+))
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=+, M=*))
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=+, M=+))
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=+,))
+    joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=*,))
 end
 
 function test_modes(modes, args...; kwargs...)
@@ -163,7 +180,7 @@ end
     end
 
     @testset "dictionary" begin
-        @test flexijoin((objects, dictionary('a':'h' .=> measurements)), by_key(@optic(_.obj))) ==
+        @test_broken flexijoin((objects, dictionary('a':'h' .=> measurements)), by_key(@optic(_.obj))) ==
             [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
     end
 end

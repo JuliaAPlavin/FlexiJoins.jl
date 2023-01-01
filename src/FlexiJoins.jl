@@ -21,13 +21,15 @@ export
 
 
 include("utils.jl")
+include("normalize_specs.jl")
+include("counting.jl")
 include("conditions.jl")
 include("prepare_cache.jl")
 include("bykey.jl")
 include("bydistance.jl")
 include("bypredicate.jl")
-include("normalize_specs.jl")
 include("ix_compute.jl")
+
 
 _commondoc = """
 Join two datasets, `A` and `B`, by the `by` condition.

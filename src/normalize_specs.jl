@@ -7,10 +7,6 @@ Base.show(io::IO, x::Keep) = write(io, "keep")
 Base.show(io::IO, x::Drop) = write(io, "drop")
 
 
-Base.in(x::Integer, ::typeof(*)) = true
-Base.in(x::Integer, ::typeof(+)) = x > 0
-
-
 normalize_groupby(x::Nothing, datas) = x
 normalize_groupby(x::Symbol, datas::NamedTuple{NS}) where {NS} = StaticInt(findfirst(==(x), NS))
 
