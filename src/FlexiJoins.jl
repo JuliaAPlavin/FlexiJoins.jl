@@ -1,7 +1,7 @@
 module FlexiJoins
 
 using StructArrays
-using Static: StaticInt
+using Static: StaticInt, static
 using Accessors
 using DataPipes
 using SplitApplyCombine: mapview
@@ -73,35 +73,39 @@ function joinindices(datas::Tuple, cond; kwargs...)
     return StructArray(StructArrays.components(IXs_unnamed))
 end
 
-function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=nothing, cardinality=nothing, mode=nothing, cache=nothing)
+function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=nothing, cardinality=nothing, mode=nothing, cache=nothing, loop_over_side=nothing)
     _joinindices(
         values(datas),
         normalize_arg(cond, datas),
         normalize_arg(multi, datas; default=identity),
         normalize_arg(nonmatches, datas; default=drop),
-        normalize_groupby(groupby, datas),
+        normalize_joinside(groupby, datas),
         normalize_arg(cardinality, datas; default=*),
         mode,
         cache,
+        normalize_joinside(loop_over_side, datas),
     )
 end
 
-function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache)
-    first_side = which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode)
-    if first_side == 2
-        return _joinindices(
-            swap_sides(datas),
-            swap_sides(cond),
-            swap_sides(multi),
-            swap_sides(nonmatches),
-            swap_sides(groupby),
-            swap_sides(cardinality),
-            mode,
-            cache,
-        ) |> swap_sides
-    end
-    @assert first_side == 1
+function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side::Nothing)
+    loop_over_side = which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode)
+    _joinindices(datas, cond, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side)
+end
 
+_joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side::StaticInt{2}) = 
+    _joinindices(
+        swap_sides(datas),
+        swap_sides(cond),
+        swap_sides(multi),
+        swap_sides(nonmatches),
+        swap_sides(groupby),
+        swap_sides(cardinality),
+        mode,
+        cache,
+        StaticInt(1),
+    ) |> swap_sides
+
+function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side::StaticInt{1})
     if any(@. multi !== identity && nonmatches !== drop)
         error("Values of arguments don't make sense together: ", (; nonmatches, multi))
     end

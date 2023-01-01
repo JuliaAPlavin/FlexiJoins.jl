@@ -131,6 +131,19 @@ end
     )
 end
 
+@testset "explicit side" begin
+    @test joinindices(OM, by_key(:obj); loop_over_side=1) == joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_key(:obj); loop_over_side=2) == joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_key(:obj); loop_over_side=1, nonmatches=keep) != joinindices(OM, by_key(:obj); loop_over_side=2, nonmatches=keep)
+    test_unique_setequal(joinindices(OM, by_key(:obj); loop_over_side=1, nonmatches=keep), joinindices(OM, by_key(:obj); nonmatches=keep))
+    test_unique_setequal(joinindices(OM, by_key(:obj); loop_over_side=2, nonmatches=keep), joinindices(OM, by_key(:obj); nonmatches=keep))
+
+    @test joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,)); loop_over_side=2) == joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,)))
+    @test joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,)); loop_over_side=:M) == joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,)))
+    @test_throws ErrorException joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,)); loop_over_side=1)
+    @test_throws ErrorException joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,)); loop_over_side=:O)
+end
+
 @testset "unnested" begin
     let
         J1 = innerjoin((O=objects, M1=measurements), by_key(:obj))
