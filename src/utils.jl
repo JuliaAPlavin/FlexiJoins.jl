@@ -35,11 +35,27 @@ Base.parentindices(a::SentinelView) = a.indices
 
 
 myview(A, I::AbstractArray) = SentinelView(A, I, nothing)
+myview(A::SentinelView, I::AbstractArray) = myview(parent(A), parentindices(A)[I])
+myview(A::SentinelView, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
 myview(A, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
-myview(A::NamedTuple, I::StructArray{<:NamedTuple}) =
-    map(A, StructArrays.components(I)) do A, I
-        myview(A, I)
-    end |> StructArray
+myview(A::NamedTuple{NS}, I::StructArray{<:NamedTuple}) where {NS} =
+    if :_ ∈ NS
+        merge(
+            map(NS) do k
+                if k ∈ (:_, :__, :___)
+                    map(StructArrays.components(A[k])) do A
+                        myview(A, StructArrays.component(I, k))
+                    end
+                else
+                    NamedTuple{(k,)}((myview(A[k], StructArrays.component(I, k)),))
+                end
+            end...
+        ) |> StructArray
+    else
+        map(A, StructArrays.components(I)) do A, I
+            myview(A, I)
+        end |> StructArray
+    end
 myview(A::Tuple, I::StructArray{<:Tuple}) =
     map(A, StructArrays.components(I)) do A, I
         myview(A, I)

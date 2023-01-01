@@ -24,3 +24,5 @@ swap_sides(x::Nothing) = x
 swap_sides(x::Tuple) = reverse(x)
 swap_sides(x::NamedTuple{NS}) where {NS} = NamedTuple{reverse(NS)}(reverse(values(x)))
 swap_sides(x::StructArray) = StructArray(swap_sides(StructArrays.components(x)))
+swap_sides(x::StaticInt{1}) = StaticInt(2)
+swap_sides(x::StaticInt{2}) = StaticInt(1)

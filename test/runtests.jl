@@ -100,6 +100,39 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
 end
 
+@testset "unnested" begin
+    let
+        J1 = innerjoin((O=objects, M1=measurements), by_key(:obj))
+
+        J2 = innerjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
+        J3 = innerjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
+        @test map(:O, J2.J) == J3.O
+        @test map(:M1, J2.J) == J3.M1
+        @test J2.M2 == J3.M2
+
+        J4 = innerjoin((_=J1, __=StructArray(measurements)), by_key(:obj ∘ :O, :obj))
+        @test map(:O, J2.J) == J4.O
+        @test map(:M1, J2.J) == J4.M1
+        @test map(:obj, J2.M2) == J4.obj
+        @test map(:time, J2.M2) == J4.time
+
+        J2 = innerjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj); groupby=:M2)
+        J3 = innerjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj); groupby=:M2)
+        @test map(r -> map(:O, r), J2.J) == J3.O
+        @test map(r -> map(:M1, r), J2.J) == J3.M1
+        @test J2.M2 == J3.M2
+    end
+
+    let
+        J1 = innerjoin((O=objects, M1=measurements), by_key(:obj); groupby=:O)
+        J2 = innerjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
+        J3 = innerjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
+        @test map(:O, J2.J) == J3.O
+        @test map(:M1, J2.J) == J3.M1
+        @test J2.M2 == J3.M2
+    end
+end
+
 @testset "eltypes" begin
     J = innerjoin((;O=objects, M=measurements), by_key(:obj))
     @test eltype(J.O) == eltype(objects)
