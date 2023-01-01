@@ -80,7 +80,24 @@ function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=no
 end
 
 function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode)
-    mode = @something(mode, best_mode(cond, datas))
+    mode = if !isnothing(mode)
+        mode
+    elseif !isnothing(best_mode(cond, datas))
+        best_mode(cond, datas)
+    elseif !isnothing(best_mode(swap_sides(cond), swap_sides(datas)))
+        return _joinindices(
+            swap_sides(datas),
+            swap_sides(cond),
+            swap_sides(multi),
+            swap_sides(nonmatches),
+            swap_sides(groupby),
+            swap_sides(cardinality),
+            best_mode(swap_sides(cond), swap_sides(datas)),
+        ) |> swap_sides
+    else
+        error("No known mode supported by $cond")
+    end
+
     if any(@. multi !== identity && nonmatches !== drop)
         error("Values of arguments don't make sense together: ", (; nonmatches, multi))
     end
