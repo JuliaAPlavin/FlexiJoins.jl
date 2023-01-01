@@ -109,7 +109,7 @@ prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) =
     (X, NN.KDTree(map(as_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
 function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree)::Tuple, multi::typeof(identity))
     leftint = cond.Lf(a)
-    @p inrect(tree, [-Inf, leftendpoint(leftint)], [rightendpoint(leftint), Inf]) |>
+    @p inrect(tree, as_vector((-Inf, leftendpoint(leftint))), as_vector((rightendpoint(leftint), Inf))) |>
         filter!(cond.pred(leftint, cond.Rf(B[_])))
 end
 
