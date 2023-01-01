@@ -154,19 +154,41 @@ end
     end
 end
 
-@testset "eltypes" begin
-    J = innerjoin((;O=objects, M=measurements), by_key(:obj))
-    @test eltype(J.O) == eltype(objects)
-    @test eltype(J.M) == eltype(measurements)
-    J = leftjoin((;O=objects, M=measurements), by_key(:obj))
-    @test eltype(J.O) == eltype(objects)
-    @test eltype(J.M) == Union{Nothing, eltype(measurements)}
-    J = rightjoin((;O=objects, M=measurements), by_key(:obj))
-    @test eltype(J.O) == Union{Nothing, eltype(objects)}
-    @test eltype(J.M) == eltype(measurements)
-    J = outerjoin((;O=objects, M=measurements), by_key(:obj))
-    @test eltype(J.O) == Union{Nothing, eltype(objects)}
-    @test eltype(J.M) == Union{Nothing, eltype(measurements)}
+@testset "types" begin
+    @testset "container" begin
+        J = flexijoin((;O=objects, M=measurements), by_key(:obj))
+        @test J isa StructArray
+        @test J.O isa FlexiJoins.SentinelView
+        @test J.M isa FlexiJoins.SentinelView
+        Jm = FlexiJoins.materialize_views(J)
+        @test Jm isa StructArray
+        @test Jm.O isa Vector{<:NamedTuple}
+        @test Jm.M isa Vector{<:NamedTuple}
+
+        J = flexijoin((;O=objects, M=measurements), by_key(:obj); groupby=:O)
+        @test J isa StructArray
+        @test J.O isa FlexiJoins.SentinelView
+        @test J.M isa Vector{<:FlexiJoins.SentinelView}
+        Jm = FlexiJoins.materialize_views(J)
+        @test Jm isa StructArray
+        @test Jm.O isa Vector{<:NamedTuple}
+        @test Jm.M isa Vector{<:Vector}
+    end
+
+    @testset "eltype" begin
+        J = innerjoin((;O=objects, M=measurements), by_key(:obj))
+        @test eltype(J.O) == eltype(objects)
+        @test eltype(J.M) == eltype(measurements)
+        J = leftjoin((;O=objects, M=measurements), by_key(:obj))
+        @test eltype(J.O) == eltype(objects)
+        @test eltype(J.M) == Union{Nothing, eltype(measurements)}
+        J = rightjoin((;O=objects, M=measurements), by_key(:obj))
+        @test eltype(J.O) == Union{Nothing, eltype(objects)}
+        @test eltype(J.M) == eltype(measurements)
+        J = outerjoin((;O=objects, M=measurements), by_key(:obj))
+        @test eltype(J.O) == Union{Nothing, eltype(objects)}
+        @test eltype(J.M) == Union{Nothing, eltype(measurements)}
+    end
 end
 
 @testset "cardinality" begin

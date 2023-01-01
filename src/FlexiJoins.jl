@@ -4,7 +4,6 @@ using StructArrays
 using Static: StaticInt
 using Accessors
 using DataPipes
-using Indexing
 using SplitApplyCombine: mapview
 using IntervalSets
 using MicroCollections: vec1
@@ -136,8 +135,8 @@ preferred_first_side(datas, cond, mode) = StaticInt(1)
 
 
 materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
-materialize_views(A::ViewVector) = collect(A)
-materialize_views(A::Vector{<:ViewVector}) = map(materialize_views, A)
+materialize_views(A::SentinelView) = collect(A)
+materialize_views(A::Vector{<:SentinelView}) = map(materialize_views, A)
 materialize_views(A) = A
 
 end
