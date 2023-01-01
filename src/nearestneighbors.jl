@@ -4,21 +4,25 @@ using .StaticArrays: SVector
 
 # by distance:
 prepare_for_join(::Mode.Tree, X, cond::ByDistance) =
-    (X, (cond.dist isa NN.MinkowskiMetric ? NN.KDTree : NN.BallTree)(map(cond.func_R, X) |> wrap_matrix, cond.dist))
-findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree)::Tuple, multi::typeof(identity)) =
-    NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
-function findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree)::Tuple, multi::Closest)
-    idxs, dists = NN.knn(tree, wrap_vector(cond.func_L(a)), 1)
-    cond.pred(only(dists), cond.max) ? idxs : empty!(idxs)
+    (X, (cond.dist isa NN.MinkowskiMetric ? NN.KDTree : NN.BallTree)(map(cond.func_R, X) |> wrap_matrix, cond.dist), keytype(X)[], Float64[])
+function findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree, idx, _)::Tuple, multi::typeof(identity))
+    NN.inrange_point!(tree, wrap_vector(cond.func_L(a)), cond.max, false, empty!(idx))
+    idx
+end
+function findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree, idx, dist)::Tuple, multi::Closest)
+    resize!(idx, 1)
+    resize!(dist, 1)
+    NN.knn_point!(tree, wrap_vector(cond.func_L(a)), false, dist, idx, NN.always_false)
+    cond.pred(only(dist), cond.max) ? idx : empty!(idx)
 end
 
 # by predicate:
 prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) =
-    (X, NN.KDTree(map(wrap_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
-function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree)::Tuple, multi::typeof(identity))
+    (X, NN.KDTree(map(wrap_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()), Int[])
+function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree, idx)::Tuple, multi::typeof(identity))
     leftint = cond.Lf(a)
-    @p inrect(tree, wrap_vector((-Inf, leftendpoint(leftint))), wrap_vector((rightendpoint(leftint), Inf))) |>
-        filter!(cond.pred(leftint, cond.Rf(B[_])))
+    inrange_rect!(tree, wrap_vector((-Inf, leftendpoint(leftint))), wrap_vector((rightendpoint(leftint), Inf)), empty!(idx))
+    @p filter!(cond.pred(leftint, cond.Rf(B[_])), idx)
 end
 
 

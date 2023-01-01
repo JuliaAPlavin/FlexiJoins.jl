@@ -313,7 +313,7 @@ function test_modes(modes, args...; alloc=true, kwargs...)
             cond = args[2]
             joinindices(LR, Base.tail(args)...; kwargs..., mode)
             timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
-            if cond isa FlexiJoins.ByDistance
+            if cond isa FlexiJoins.ByDistance && mode isa Mode.Sort
                 @test_broken Base.gc_alloc_count(timed.gcstats) < 150
             else
                 @test Base.gc_alloc_count(timed.gcstats) < 150
