@@ -17,6 +17,11 @@ normalize_arg(cond::ByPred, datas) = (@assert length(datas) == 2; cond)
 
 supports_mode(::Mode.NestedLoop, ::ByKey, datas) = true
 is_match(by::ByPred, a, b) = by.pred(by.Lf(a), by.Rf(b))
+findmatchix(::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >))...}}, a, B, multi::Closest) =
+    @p B |>
+        findall(b -> is_match(cond, a, b)) |>
+        sort(by=i -> abs(cond.Lf(a) - cond.Rf(B[i]))) |>
+        first(__, 1)
 
 
 supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
