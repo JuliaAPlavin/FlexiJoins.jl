@@ -17,4 +17,22 @@ With all these features, FlexiJoins is designed to be easy-to-use and fast:
 - Performance close to other, less general, solutions: see [benchmarks](https://aplavin.github.io/FlexiJoins.jl/test/benchmarks.html)
 - Extensible in terms of both new join conditions and more specialized algorithms
 
-Documentation with examples is available as a [Pluto notebook](https://aplavin.github.io/FlexiJoins.jl/test/examples.html).
+# Usage
+
+Examples that showcase main features:
+
+```julia
+innerjoin((objects, measurements), by_key(:name))
+
+leftjoin((O=objects, M=measurements), by_key(:name); groupby=:O)
+
+innerjoin((M1=measurements, M2=measurements), by_key(:name) & by_distance(:time, Euclidean(), <=(3)))
+
+innerjoin(
+	(O=objects, M=measurements),
+	by_key(:name) & by_pred(:ref_time, <, :time);
+	multi=(M=closest,)
+)
+```
+
+Documentation with explanations and more examples is available as a [Pluto notebook](https://aplavin.github.io/FlexiJoins.jl/test/examples.html).
