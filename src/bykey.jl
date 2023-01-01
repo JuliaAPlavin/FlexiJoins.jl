@@ -2,6 +2,17 @@ struct ByKey{TFs} <: JoinCondition
     keyfuncs::TFs
 end
 
+function Base.show(io::IO, c::ByKey)
+    print(io, "by_key(")
+    @assert length(c.keyfuncs) ∈ (1, 2)
+    show(io, c.keyfuncs[1])
+    if length(c.keyfuncs) == 2
+        print(io, " == ")
+        show(io, c.keyfuncs[2])
+    end
+    print(io, ")")
+end
+
 swap_sides(c::ByKey) = ByKey(swap_sides(c.keyfuncs))
 
 """
@@ -99,15 +110,4 @@ end
 findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::Union{typeof(first), typeof(last)}) = let
     b = get(B, first(cond.keyfuncs)(a), nothing)
     isnothing(b) ? MaybeVector{valtype(B)}() : MaybeVector{valtype(B)}(b)
-end
-
-
-
-function Base.show(io::IO, c::ByKey)
-    print(io, "by_key(")
-    for (i, f) in enumerate(c.keyfuncs)
-        i > 1 && print(io, ", ")
-        show(io, f)
-    end
-    print(io, ")")
 end
