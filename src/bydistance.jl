@@ -60,7 +60,7 @@ searchsorted_matchix_closest(cond::ByDistance, a, B, perm) =
 
 
 supports_mode(::Mode.Tree, ::ByDistance, datas) = true
-prepare_for_join(::Mode.Tree, X, cond::ByDistance, multi) =
+prepare_for_join(::Mode.Tree, X, cond::ByDistance) =
     (X, (cond.dist isa NN.MinkowskiMetric ? NN.KDTree : NN.BallTree)(map(cond.func_R, X) |> wrap_matrix, cond.dist))
 findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::typeof(identity)) =
     NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
