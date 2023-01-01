@@ -39,7 +39,7 @@ normalize_arg(cond::ByKey{<:Tuple}, datas::Union{Tuple, NamedTuple}) = (@assert 
 
 # nested loop implementation
 supports_mode(::Mode.NestedLoop, ::ByKey, datas) = true
-is_match(by::ByKey, a, b) = first(by.keyfuncs)(a) == last(by.keyfuncs)(b)
+is_match(by::ByKey, a, b) = isequal(first(by.keyfuncs)(a), last(by.keyfuncs)(b))
 
 
 # Sort implementation

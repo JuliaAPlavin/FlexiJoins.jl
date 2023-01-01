@@ -6,12 +6,15 @@ end
 
 Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")
 
+
+const _EQUAL_F = Union{typeof(==), typeof(isequal)}
+
 swap_sides(c::ByPred) = ByPred(c.Rf, c.Lf, swap_sides(c.pred))
 swap_sides(::typeof(∈)) = ∋
 swap_sides(::typeof(∋)) = ∈
 swap_sides(::typeof(<)) = >
 swap_sides(::typeof(<=)) = >=
-swap_sides(::typeof(==)) = ==
+swap_sides(f::_EQUAL_F) = f
 swap_sides(::typeof(>=)) = <=
 swap_sides(::typeof(>)) = <
 swap_sides(::typeof(⊆)) = ⊇
@@ -44,12 +47,12 @@ findmatchix(mode::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >)).
         firstn_by!(by=i -> abs(cond.Lf(a) - cond.Rf(B[i])))
 
 # support Hash for equality and subset
-supports_mode(::Mode.Hash, ::ByPred{typeof(==)}, datas) = true
+supports_mode(::Mode.Hash, ::ByPred{<:_EQUAL_F}, datas) = true
 supports_mode(::Mode.Hash, cond::ByPred{typeof(∋)}, datas) = Base.isiterable(Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}))
 
 # order predicates: support Sort
-supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
-supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
+supports_mode(::Mode.SortChain, ::ByPred{<:_EQUAL_F}, datas) = true
+supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, >=, >, ∋))...}}, datas) = true
 
 # intervals set-operations: subset support Sort
 supports_mode(::Mode.Sort, cond::ByPred{<:Union{typeof.((⊋, ⊇))...}}, datas) =
@@ -60,8 +63,8 @@ supports_mode(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, datas) =
 
 
 # Hash implementation
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
-findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, ix_a, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), ix_a, a, Bdata, multi)
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{<:_EQUAL_F}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
+findmatchix(mode::Mode.Hash, cond::ByPred{<:_EQUAL_F}, ix_a, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), ix_a, a, Bdata, multi)
 
 prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
 findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi) =
@@ -73,13 +76,14 @@ findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi) =
 
 
 # Sort implementation for comparisons
-sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >))...}}) = cond.Rf
+sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, isequal, >=, >))...}}) = cond.Rf
 
-searchsorted_matchix(cond::ByPred{ typeof(<)}, a, B, perm) = @inbounds @view perm[searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) + 1:end]
-searchsorted_matchix(cond::ByPred{typeof(<=)}, a, B, perm) = @inbounds @view perm[searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)):end]
-searchsorted_matchix(cond::ByPred{typeof(==)}, a, B, perm) = @inbounds @view perm[searchsorted(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
-searchsorted_matchix(cond::ByPred{typeof(>=)}, a, B, perm) = @inbounds @view perm[begin:searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
-searchsorted_matchix(cond::ByPred{ typeof(>)}, a, B, perm) = @inbounds @view perm[begin:searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) - 1]
+searchsorted_matchix(cond::ByPred{ typeof(<)}     , a, B, perm) = @inbounds @view perm[searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) + 1:end]
+searchsorted_matchix(cond::ByPred{typeof(<=)}     , a, B, perm) = @inbounds @view perm[searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)):end]
+searchsorted_matchix(cond::ByPred{typeof(isequal)}, a, B, perm) = @inbounds @view perm[searchsorted(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
+searchsorted_matchix(cond::ByPred{typeof(==)}     , a, B, perm) = @inbounds @view perm[searchsorted(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]  # should add `lt= <`? is it allowed?
+searchsorted_matchix(cond::ByPred{typeof(>=)}     , a, B, perm) = @inbounds @view perm[begin:searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
+searchsorted_matchix(cond::ByPred{ typeof(>)}     , a, B, perm) = @inbounds @view perm[begin:searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) - 1]
 
 searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(<), typeof(<=)}}, a, B, perm) = @inbounds @view searchsorted_matchix(cond, a, B, perm)[begin:min(begin, end)]
 searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(>), typeof(>=)}}, a, B, perm) = @inbounds @view searchsorted_matchix(cond, a, B, perm)[max(begin, end):end]

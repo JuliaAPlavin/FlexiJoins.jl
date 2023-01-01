@@ -122,6 +122,7 @@ end
     @test joinindices(OM, by_key((:obj, :obj), x -> (x.obj, x.obj))) == joinindices(OM, by_key(:obj))
 
     @test joinindices(OM, by_pred(:obj, ==, :obj)) == joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_pred(:obj, isequal, :obj)) == joinindices(OM, by_key(:obj))
     @test joinindices(OM, by_pred(x -> x.obj == "B" ? nothing : x.obj, ==, :obj)) == joinindices(OM, by_key(x -> x.obj == "B" ? nothing : x.obj, :obj))
     @test joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,))) == joinindices(OM, by_key(:obj))
     @test joinindices(OM, by_pred(:obj, ∈, x -> (nothing, x.obj))) == joinindices(OM, by_key(:obj))
@@ -454,6 +455,71 @@ end
     test_modes([Mode.NestedLoop(), Mode.Hash()], (measurements, measurements), by_key(:obj) & not_same(); alloc=false)
     test_modes([Mode.NestedLoop(), Mode.NestedLoopFast()], (measurements, measurements), not_same(); alloc=false)
 end
+
+@testitem "weird values" begin
+    using FlexiJoins: Mode
+    using Distances: Euclidean
+    using StaticArrays
+    using IntervalSets
+    using Accessors
+
+    function test_unique_setequal(a, b)
+        @test allunique(a)
+        @test allunique(b)
+        @test issetequal(a, b)
+    end
+
+    function test_modes(modes, args...; alloc=true, kwargs...)
+        base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
+        @testset for mode in [nothing; modes]
+            cur = joinindices(args...; kwargs..., mode)
+            test_unique_setequal(cur, base)
+
+            if alloc && mode != Mode.NestedLoop() && all(!isempty, args[1])
+                LR = map(X -> repeat(X, 200), args[1])
+                cond = args[2]
+                joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                if cond isa FlexiJoins.ByDistance
+                    @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+                else
+                    @test Base.gc_alloc_count(timed.gcstats) < 150
+                end
+            end
+        end
+    end
+
+    objects = [(obj="A", value=2.), (obj=missing, value=-5.), (obj="D", value=0.0), (obj="E", value=-0.0)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in [NaN; cnt .* (-cnt:(cnt+1))]]
+    OM = (;O=objects, M=measurements)
+
+    @testset "$cond" for (cond, modes, kwargs) in [
+            (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
+            # Sort differs:
+            # (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
+            (by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
+            (by_pred(:obj, isequal, :obj), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
+            # Hash mode differs:
+            # (by_pred(:value, ==, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, isequal, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            # NaNs in the end:
+            # (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            # (by_pred(:value, <=, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, >, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            # (by_pred(:value, >=, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            # (by_pred(:value, ∈, x -> (x.time, x.time, x.time + 5, x.time + 10)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;alloc=false)),
+            # (by_pred(:value, ∈, x -> x.time..(x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, ∈, x -> Interval{:open,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            # (by_pred(:value, ∈, x -> Interval{:closed,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, ∈, x -> Interval{:open,:closed}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(x -> (x.value-5)..(x.value+4), ⊇, x -> (x.time-1)..(x.time+2)), [Mode.NestedLoop(), Mode.Sort()], (;alloc=false)),
+            # (by_pred(x -> (x.value-1)..(x.value+2), (!) ∘ isdisjoint, x -> (x.time-1)..(x.time+2)), [Mode.NestedLoop(), Mode.Tree()], (;)),
+        ]
+        test_modes(modes, OM, cond; alloc=false)
+    end
+end
+
 
 @testitem "normalize_arg" begin
     using FlexiJoins: normalize_arg, ByKey
