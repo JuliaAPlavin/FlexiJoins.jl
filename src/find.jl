@@ -8,40 +8,47 @@
 #     isnothing(ix) ? [] : [ix]
 # end
 
-function optimize(X, cond::ByKey, multi::typeof(identity))
+function optimize(which, datas, cond::ByKey, multi::typeof(identity))
+    keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
+    X = which(datas)
     dct = Dict{
-        typeof(cond.keyfunc(first(X))),
+        typeof(keyfunc(first(X))),
         Vector{eltype(keys(X))}
     }()
     for (i, x) in pairs(X)
-        push!(get!(dct, cond.keyfunc(x), []), i)
+        push!(get!(dct, keyfunc(x), []), i)
     end
     return dct
 end
 
-function optimize(X, cond::ByKey, multi::typeof(first))
+function optimize(which, datas, cond::ByKey, multi::typeof(first))
+    keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
+    X = which(datas)
     dct = Dict{
-        typeof(cond.keyfunc(first(X))),
+        typeof(keyfunc(first(X))),
         eltype(keys(X))
     }()
     for (i, x) in pairs(X)
-        get!(dct, cond.keyfunc(x), i)
+        get!(dct, keyfunc(x), i)
     end
     return dct
 end
 
-function optimize(X, cond::ByKey, multi::typeof(last))
+function optimize(which, datas, cond::ByKey, multi::typeof(last))
+    keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
+    X = which(datas)
     dct = Dict{
-        typeof(cond.keyfunc(first(X))),
+        typeof(keyfunc(first(X))),
         eltype(keys(X))
     }()
     for (i, x) in pairs(X)
-        dct[cond.keyfunc(x)] = i
+        dct[keyfunc(x)] = i
     end
     return dct
 end
 
-findmatchix(cond::ByKey, a, B::Dict, multi::typeof(identity)) = get(B, cond.keyfunc(a), valtype(B)())
+findmatchix(cond::ByKey, a, B::Dict, multi::typeof(identity)) = get(B, get_actual_keyfunc(first(cond.keyfuncs))(a), valtype(B)())
 findmatchix(cond::ByKey, a, B::Dict, multi::Union{typeof(first), typeof(last)}) = let
-    haskey(B, cond.keyfunc(a)) ? [B[cond.keyfunc(a)]] : Vector{valtype(B)}()
+    k = get_actual_keyfunc(first(cond.keyfuncs))(a)
+    haskey(B, k) ? [B[k]] : Vector{valtype(B)}()
 end

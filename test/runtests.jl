@@ -1,5 +1,5 @@
 using FlexiJoins
-using FlexiJoins: NothingIndex
+using FlexiJoins: NothingIndex, normalize_arg, ByKey
 using StructArrays, TypedTables
 using Dictionaries: dictionary
 using Test
@@ -19,6 +19,8 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     @test flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj))) ==
         [(O=(obj="A", value=2), M=(obj="A", time=8)), (O=(obj="A", value=2), M=(obj="A", time=12)), (O=(obj="A", value=2), M=(obj="A", time=16)), (O=(obj="A", value=2), M=(obj="A", time=20)), (O=(obj="B", value=-5), M=(obj="B", time=2))]
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj))) ==
+        [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5)]
+    @test joinindices((;O=objects, M=[(name=x.obj,) for x in measurements]), by_key((O=@optic(_.obj), M=@optic(_.name)))) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5)]
 
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(O=keep,)) ==
@@ -52,6 +54,14 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     )
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); cardinality=(O=1, M=1)) |> materialize_views
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+end
+
+@testset "normalize_arg" begin
+    @test normalize_arg(by_key(@optic(_.obj)), (A=[], B=[])) == ByKey(((@optic(_.obj),), (@optic(_.obj),)))
+    @test normalize_arg(by_key(:obj), (A=[], B=[])) == ByKey(((@optic(_.obj),), (@optic(_.obj),)))
+    @test normalize_arg(by_key(:obj), ([], [])) == ByKey(((@optic(_.obj),), (@optic(_.obj),)))
+    @test normalize_arg(by_key((:obj, @optic(_.name))), ([], [])) == ByKey(((@optic(_.obj), @optic(_.name)), (@optic(_.obj), @optic(_.name))))
+    @test normalize_arg(by_key((A=@optic(_.name), B=:obj)), (A=[], B=[])) == ByKey(((@optic(_.name),), (@optic(_.obj),)))
 end
 
 @testset "other types" verbose=true begin

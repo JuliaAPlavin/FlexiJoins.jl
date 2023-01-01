@@ -14,25 +14,26 @@ Base.:(&)(a::JoinCondition, b::CompositeCondition) = CompositeCondition((a, b.co
 Base.:(&)(a::CompositeCondition, b::CompositeCondition) = CompositeCondition((a.conds..., b.conds...))
 
 
-struct ByKey{TF} <: JoinCondition
-    keyfunc::TF
+struct ByKey{TFs} <: JoinCondition
+    keyfuncs::TFs
 end
 
 # function index end
 # by_key(keyfunc::typeof(index)) = ByKey(only ∘ parentindices)
 by_key(keyfunc) = ByKey(keyfunc)
 
-
-is_match(by::ByKey, a, b) = by.keyfunc(a) == by.keyfunc(b)
-# is_match(by::ByKey, a) = b -> by.keyfunc(a) == by.keyfunc(b)
+# is_match(by::ByKey, a, b) = by.keyfunc(a) == by.keyfunc(b)
 
 # extra(::Val{:key}, by::ByKey, a::Nothing, b) = by.keyfunc(b)
 # extra(::Val{:key}, by::ByKey, a, b::Nothing) = by.keyfunc(a)
 # extra(::Val{:key}, by::ByKey, a, b) = (@assert by.keyfunc(a) == by.keyfunc(b); by.keyfunc(a))
 
-normalize_arg(cond::ByKey, datas::NamedTuple{NS}) where {NS} = ByKey(cond.keyfunc)
-normalize_arg(cond::ByKey, datas::Tuple) = ByKey(cond.keyfunc)
-
+normalize_arg(cond::ByKey{<:NamedTuple{NSk}}, datas::NamedTuple{NS}) where {NSk, NS} = (@assert NSk == NS; ByKey(map(normalize_keyfunc, cond.keyfuncs) |> values))
+normalize_arg(cond::ByKey, datas::Union{Tuple, NamedTuple}) = ByKey(map(Returns(normalize_keyfunc(cond.keyfuncs)), datas) |> values)
+normalize_keyfunc(x::Tuple) = map(x -> only(normalize_keyfunc(x)), x)
+normalize_keyfunc(x) = (x,)
+normalize_keyfunc(x::Symbol) = (Accessors.PropertyLens{x}(),)
+get_actual_keyfunc(x::Tuple) = arg -> map(el -> el(arg), x)
 
 struct ByPred{TP} <: JoinCondition
     pred::TP
