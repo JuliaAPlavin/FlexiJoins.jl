@@ -363,12 +363,6 @@ md"""
 The results should not depend on the mode, which can be used to cross-check if there's a bug in an optimized join implementation.
 """
 
-# ╔═╡ 6f844849-8e8d-4366-98a6-1d9203948eb0
-
-
-# ╔═╡ c8a8c846-3c92-49bf-ada9-a7be80b61ee3
-
-
 # ╔═╡ 21f8d454-9d89-4162-85ad-bf96cf1c2f94
 PlutoUI.TableOfContents()
 
@@ -841,7 +835,7 @@ version = "16.2.1+1"
 """
 
 # ╔═╡ Cell order:
-# ╠═095e9db4-8910-4ba9-b95a-518904d054c5
+# ╟─095e9db4-8910-4ba9-b95a-518904d054c5
 # ╟─f19a391a-b36a-429c-8e48-dc7b05a1f534
 # ╟─95ee9ad5-0a7c-4955-912d-efc29202abf1
 # ╟─5d25ada1-ca21-4776-a6fc-9926040d673b
@@ -909,17 +903,15 @@ version = "16.2.1+1"
 # ╟─00f6d1d7-3ee1-47b4-8dfe-37399613547f
 # ╠═4fda4c8e-8d7f-4341-a2e6-3db18292e50e
 # ╟─5f0b9787-259c-42ca-82b8-d393e470db8e
-# ╠═6f844849-8e8d-4366-98a6-1d9203948eb0
-# ╠═c8a8c846-3c92-49bf-ada9-a7be80b61ee3
-# ╠═24683ed0-b052-11ec-2ee1-dfbf11c71aa2
-# ╠═a3d4e16a-3946-4d25-81ec-32db9d404c6a
-# ╠═1b2cf280-332f-49f1-b8d7-27887e66cf98
-# ╠═d4adeae4-ba96-46b0-acb8-4f2472c07e43
-# ╠═651473bc-c206-4312-ab8b-0dfa8fda0672
-# ╠═66d5a7be-eace-4da3-8e30-a217d01849cd
-# ╠═0a21983a-c6af-40e3-9898-091dee85dbf6
-# ╠═27cd8a65-e38d-4bf4-9013-a8054b116b00
-# ╠═aafe09a8-480d-46dc-ac13-3adaddf94621
-# ╠═21f8d454-9d89-4162-85ad-bf96cf1c2f94
+# ╟─24683ed0-b052-11ec-2ee1-dfbf11c71aa2
+# ╟─a3d4e16a-3946-4d25-81ec-32db9d404c6a
+# ╟─1b2cf280-332f-49f1-b8d7-27887e66cf98
+# ╟─d4adeae4-ba96-46b0-acb8-4f2472c07e43
+# ╟─651473bc-c206-4312-ab8b-0dfa8fda0672
+# ╟─66d5a7be-eace-4da3-8e30-a217d01849cd
+# ╟─0a21983a-c6af-40e3-9898-091dee85dbf6
+# ╟─27cd8a65-e38d-4bf4-9013-a8054b116b00
+# ╟─aafe09a8-480d-46dc-ac13-3adaddf94621
+# ╟─21f8d454-9d89-4162-85ad-bf96cf1c2f94
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
