@@ -133,10 +133,4 @@ which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode) = e
 preferred_first_side(datas, cond, modes::Tuple{M, M}) where {M} = preferred_first_side(datas, cond, first(modes))
 preferred_first_side(datas, cond, mode) = StaticInt(1)
 
-
-materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
-materialize_views(A::SentinelView) = collect(A)
-materialize_views(A::Vector{<:SentinelView}) = map(materialize_views, A)
-materialize_views(A) = A
-
 end
