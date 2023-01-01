@@ -477,7 +477,13 @@ end
 
     @testset for mode in [nothing, Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]
         @testset "tuple" begin
-            @test flexijoin((objects, measurements), by_key(:obj); mode) == expected
+            @test_broken flexijoin((Tuple(objects), Tuple(measurements)), by_key(:obj); mode) == expected
+        end
+
+        @testset "pairs" begin
+            @test_broken flexijoin((objects, pairs(measurements)), by_key(:obj, x -> x[2].obj); mode) == expected
+            @test_broken flexijoin((pairs(objects), measurements), by_key(x -> x[2].obj, :obj); mode) == expected
+            @test_broken flexijoin((pairs(objects), pairs(measurements)), by_key(x -> x[2].obj); mode) == expected
         end
 
         @testset "structarray" begin
