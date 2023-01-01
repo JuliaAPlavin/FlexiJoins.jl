@@ -322,6 +322,8 @@ function test_modes(modes, args...; alloc=true, kwargs...)
     end
 end
 
+Threads.nthreads() > 1 || @warn "Only a single thread available"
+
 @testset "join modes" begin
     @testset "$cond" for (cond, modes, kwargs) in [
             (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
@@ -365,6 +367,10 @@ end
             @test_throws AssertionError joinindices(OM, by_key(:abc); cache)
             @test_throws AssertionError joinindices(OM, cond; multi=first_M ? (O=first,) : (M=first,), cache)
             @test_throws AssertionError joinindices(OM, cond; mode=Mode.NestedLoop(), cache)
+
+            Threads.@threads for _ in 1:1000
+                test_unique_setequal(joinindices(OM, cond; cache), base)
+            end
 
             if !first_M
                 cache = join_cache()
