@@ -31,8 +31,20 @@ end
         [(O=1, M=1), (O=2, M=5)]
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=last,)) ==
         [(O=1, M=4), (O=2, M=5)]
+    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=(O=keep,)) ==
+        [(O=1, M=1), (O=2, M=5), (O=3, M=NothingIndex()), (O=4, M=NothingIndex())]
 
+    @test flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O) ==
+        [(O=(obj="A", value=2), M=[(obj="A", time=8), (obj="A", time=12), (obj="A", time=16), (obj="A", time=20)]), (O=(obj="B", value=-5), M=[(obj="B", time=2)])]
+    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O) ==
+        [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5])]
+    @test_broken joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:M)
+    test_unique_setequal(
+        joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
+        [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5]), (O=3, M=[]), (O=4, M=[]), (O=NothingIndex(), M=[6, 7, 8])]
+    )
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); cardinality=(O=1, M=1)) |> materialize_views
+    @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
 end
 
 

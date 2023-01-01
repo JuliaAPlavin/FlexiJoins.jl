@@ -2,6 +2,9 @@ struct Drop end
 struct Keep end
 const drop = Drop()
 const keep = Keep()
+Base.broadcastable(x::Union{Drop, Keep}) = Ref(x)
+Base.show(io::IO, x::Keep) = write(io, "keep")
+Base.show(io::IO, x::Drop) = write(io, "drop")
 
 
 Base.in(x::Integer, ::typeof(*)) = true

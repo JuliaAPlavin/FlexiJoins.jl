@@ -1,7 +1,7 @@
 module FlexiJoins
 
 using StructArrays
-using Static: StaticInt
+using Static: StaticInt, known
 using Accessors
 using DataPipes
 using Indexing
@@ -48,6 +48,9 @@ function _joinindices(datas, cond; kwargs...)
 end
 
 function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality)
+    if any(@. multi !== identity && nonmatches !== drop)
+        error("Values of arguments don't make sense together: ", (; nonmatches, multi))
+    end
 	IXs = create_ix_array(datas, nonmatches, groupby)
 	fill_ix_array!(IXs, datas, cond, multi, nonmatches, groupby, cardinality)
 end
