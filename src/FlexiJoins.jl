@@ -2,7 +2,6 @@ module FlexiJoins
 
 using StructArrays
 using Tables: columntable
-using Static: StaticInt, static
 using Accessors
 using DataPipes
 using SplitApplyCombine: mapview

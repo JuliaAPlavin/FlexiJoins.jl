@@ -1,9 +1,9 @@
-function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, cache)
+function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, Val{1}}, cardinality, cache)
     last_optimized = prepare_for_join(cache, mode, last(datas), cond, last(multi))
     _fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, last_optimized)
 end
 
-function _fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
+function _fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, Val{1}}, cardinality, last_optimized)
     ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
     cnt = Ref(0)
     @inbounds for (ix_1, x_1) in pairs(first(datas))
@@ -25,8 +25,8 @@ append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing) =
     foreach_inbounds(IX_2) do ix_2
         push!(IXs, (ix_1, ix_2))
     end
-append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::StaticInt{1}) = isempty(IX_2) || push!(IXs, NoConvert((ix_1, IX_2)))
-append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::StaticInt{1}) = push!(IXs, NoConvert((ix_1, IX_2)))
+append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::Val{1}) = isempty(IX_2) || push!(IXs, NoConvert((ix_1, IX_2)))
+append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::Val{1}) = push!(IXs, NoConvert((ix_1, IX_2)))
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::Nothing)
     for (ix_1, cnt) in pairs(ix_seen_cnts[1])
@@ -43,9 +43,9 @@ function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), t
 end
 
 # these nonmatches are already appended
-append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::StaticInt{1}) = IXs
+append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::Val{1}) = IXs
 
-function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(keep)}, groupby::StaticInt{1})
+function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(keep)}, groupby::Val{1})
     IX_2 = @p ix_seen_cnts[2] |> findall(==(0))
     push!(IXs, NoConvert((nothing, IX_2)))
 end
@@ -61,7 +61,7 @@ create_ix_array(datas, nonmatches, groupby::Nothing) = map(datas, reverse(nonmat
     empty_ix_vector(keytype(X), nms, Val(false))
 end |> StructArray
 
-create_ix_array(datas, nonmatches, groupby::StaticInt) = map(ntuple(identity, length(datas)), datas, reverse(nonmatches)) do i, X, nms
+create_ix_array(datas, nonmatches, _groupby::Val{groupby}) where {groupby} = map(ntuple(identity, length(datas)), datas, reverse(nonmatches)) do i, X, nms
     empty_ix_vector(keytype(X), nms, Val(i != groupby))
 end |> StructArray
 

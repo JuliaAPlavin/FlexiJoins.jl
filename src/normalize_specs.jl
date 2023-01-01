@@ -8,8 +8,8 @@ Base.show(io::IO, x::Drop) = write(io, "drop")
 
 
 normalize_joinside(x::Nothing, datas) = x
-normalize_joinside(x::Integer, datas::Union{Tuple, NamedTuple}) = StaticInt(x)
-normalize_joinside(x::Symbol, datas::NamedTuple{NS}) where {NS} = StaticInt(findfirst(==(x), NS))
+normalize_joinside(x::Integer, datas::Union{Tuple, NamedTuple}) = Val(x)
+normalize_joinside(x::Symbol, datas::NamedTuple{NS}) where {NS} = Val(findfirst(==(x), NS))
 
 normalize_arg(::Nothing, datas; default) = ntuple(Returns(default), length(datas))
 normalize_arg(x::JoinCondition, datas) = x
@@ -25,5 +25,5 @@ swap_sides(x::Nothing) = x
 swap_sides(x::Tuple) = reverse(x)
 swap_sides(x::NamedTuple{NS}) where {NS} = NamedTuple{reverse(NS)}(reverse(values(x)))
 swap_sides(x::StructArray) = StructArray(swap_sides(StructArrays.components(x)))
-swap_sides(x::StaticInt{1}) = StaticInt(2)
-swap_sides(x::StaticInt{2}) = StaticInt(1)
+swap_sides(x::Val{1}) = Val(2)
+swap_sides(x::Val{2}) = Val(1)
