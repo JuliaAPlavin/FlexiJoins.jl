@@ -3,7 +3,7 @@ module FlexiJoins
 using StructArrays
 using Accessors
 using DataPipes
-using FlexiMaps: mapview
+using FlexiMaps: mapview, _eltype
 using SentinelViews: sentinelview, SentinelView
 using IntervalSets
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin

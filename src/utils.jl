@@ -60,10 +60,6 @@ end
 
 firstn_by!(A::AbstractVector, n=1; by) = view(partialsort!(A, 1:min(n, length(A)); by), 1:min(n, length(A)))
 
-# Base.eltype returns Any for mapped/flattened iterators
-_eltype(A::AbstractArray) = eltype(A)
-_eltype(A::T) where {T} = Core.Compiler.return_type(first, Tuple{T})
-
 
 # workaround for https://github.com/JuliaArrays/StructArrays.jl/issues/228
 struct NoConvert{T}
