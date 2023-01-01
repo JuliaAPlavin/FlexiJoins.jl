@@ -11,13 +11,13 @@ function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), 
         cnt[] = 0
         foreach_inbounds(IX_2) do ix_2
             cnt[] += 1
-            add_to_cnt!(ix_seen_cnts[2], ix_2, true, cardinality[2])
+            add_to_cnt!(ix_seen_cnts[2], ix_2, true, cardinality[1])  # note that cardinality is reversed
         end
-        add_to_cnt!(ix_seen_cnts[1], ix_1, cnt[], cardinality[1])
-		@assert cardinality_ok(cnt[], cardinality[2])
+        add_to_cnt!(ix_seen_cnts[1], ix_1, cnt[], cardinality[2])  # note that cardinality is reversed
+		@assert cardinality_ok(cnt[], cardinality[2])  # cnt[] is the final count, so it must be within the cardinality; add_to_cnt! should only check that cnt <= cardinality
         append_matchix!(IXs, (ix_1, IX_2), first(nonmatches), groupby)
 	end
-    @assert all(cnt -> cardinality_ok(cnt, cardinality[2]), ix_seen_cnts[2])
+    @assert all(cnt -> cardinality_ok(cnt, cardinality[1]), ix_seen_cnts[2])  # note that cardinality is reversed
 	append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 

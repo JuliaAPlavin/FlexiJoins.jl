@@ -217,10 +217,19 @@ end
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=+, M=*))
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=+, M=+))
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=+,))
-    joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=*,))
-    joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0:4,))
-    joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=0:1,))
-    joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0:4, M=0:1))
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=0:1,))
+    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=1:3,))
+    J = joinindices((;O=objects, M=measurements), by_key(:obj))
+    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=*,)) == J
+    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=0:4,)) == J
+    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0:1,)) == J
+    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=0:4, O=0:1)) == J
+    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(0:1, 0:4)) == J
+    joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 1))
+    joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, +))
+    joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(O=+,))
+    @test_throws AssertionError joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 0))
+    @test_throws AssertionError joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 2:100))
 end
 
 function test_modes(modes, args...; alloc=true, kwargs...)
