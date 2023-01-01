@@ -16,10 +16,10 @@ function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), A
 	append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 
-append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing) =
-    for ix_2 in IX_2
-        push!(IXs, (ix_1, ix_2))
-    end
+function append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing)
+    append!(StructArrays.component(IXs, 1), StepRangeLen(ix_1, 0, length(IX_2)))
+    append!(StructArrays.component(IXs, 2), IX_2)
+end
 
 append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::StaticInt{1}) = isempty(IX_2) || push!(IXs, (ix_1, IX_2))
 append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::StaticInt{1}) = push!(IXs, (ix_1, IX_2))
