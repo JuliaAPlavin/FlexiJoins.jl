@@ -37,11 +37,11 @@ end
 function _joinindices(datas, cond; kwargs...)
     _joinindices(
         values(datas),
-        stripnames(cond, datas),
-        stripnames(get(kwargs, :multi, nothing), datas; default=identity),
-        stripnames(get(kwargs, :nonmatches, nothing), datas; default=drop),
-        stripname_groupby(get(kwargs, :groupby, nothing), datas),
-        stripnames(get(kwargs, :cardinality, nothing), datas; default=*),
+        normalize_arg(cond, datas),
+        normalize_arg(get(kwargs, :multi, nothing), datas; default=identity),
+        normalize_arg(get(kwargs, :nonmatches, nothing), datas; default=drop),
+        normalize_groupby(get(kwargs, :groupby, nothing), datas),
+        normalize_arg(get(kwargs, :cardinality, nothing), datas; default=*),
     )
 end
 

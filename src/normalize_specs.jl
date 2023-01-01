@@ -11,20 +11,20 @@ Base.in(x::Integer, ::typeof(*)) = true
 Base.in(x::Integer, ::typeof(+)) = x > 0
 
 
-stripname_groupby(x::Nothing, datas) = x
-stripname_groupby(x::Symbol, datas::NamedTuple{NS}) where {NS} = StaticInt(findfirst(==(x), NS))
+normalize_groupby(x::Nothing, datas) = x
+normalize_groupby(x::Symbol, datas::NamedTuple{NS}) where {NS} = StaticInt(findfirst(==(x), NS))
 
-stripnames(::Nothing, datas; default) = map(Returns(default), datas) |> values
+normalize_arg(::Nothing, datas; default) = map(Returns(default), datas) |> values
 
-stripnames(x, datas; default) = map(Returns(x), datas) |> values
+normalize_arg(x, datas; default) = map(Returns(x), datas) |> values
 
-stripnames(x::NamedTuple{N, <:Tuple{Any}}, datas::NamedTuple{NS}; default) where {N, NS} = let
+normalize_arg(x::NamedTuple{N, <:Tuple{Any}}, datas::NamedTuple{NS}; default) where {N, NS} = let
 	@assert only(N) ∈ NS
 	ix = findfirst(==(only(N)), NS)
 	ntuple(i -> i == ix ? only(x) : default, length(NS))
 end
 
-stripnames(x::NamedTuple{NSx}, datas::NamedTuple{NS}; default) where {NSx, NS} = let
+normalize_arg(x::NamedTuple{NSx}, datas::NamedTuple{NS}; default) where {NSx, NS} = let
 	@assert NSx ⊆ NS
 	merge(
 		map(Returns(default), datas),

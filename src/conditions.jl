@@ -30,8 +30,8 @@ is_match(by::ByKey, a, b) = by.keyfunc(a) == by.keyfunc(b)
 # extra(::Val{:key}, by::ByKey, a, b::Nothing) = by.keyfunc(a)
 # extra(::Val{:key}, by::ByKey, a, b) = (@assert by.keyfunc(a) == by.keyfunc(b); by.keyfunc(a))
 
-stripnames(cond::ByKey, datas::NamedTuple{NS}) where {NS} = ByKey(cond.keyfunc)
-stripnames(cond::ByKey, datas::Tuple) = ByKey(cond.keyfunc)
+normalize_arg(cond::ByKey, datas::NamedTuple{NS}) where {NS} = ByKey(cond.keyfunc)
+normalize_arg(cond::ByKey, datas::Tuple) = ByKey(cond.keyfunc)
 reverse_sides(cond::ByKey) = ByKey(cond.keyfunc)
 
 struct ByPred{TP} <: JoinCondition
