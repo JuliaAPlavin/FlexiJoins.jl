@@ -10,6 +10,7 @@ using IntervalSets
 using MicroCollections: vec1
 import NearestNeighbors as NN
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
+using ArraysOfArrays: VectorOfVectors
 
 
 export

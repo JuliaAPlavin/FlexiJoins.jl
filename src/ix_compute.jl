@@ -9,8 +9,8 @@ function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), 
         IX_2 = findmatchix(mode, cond, x_1, last_optimized, last(multi))
         add_to_cnt!(ix_seen_cnts[1], ix_1, length(IX_2), cardinality[1])
 		@assert cardinality_ok(length(IX_2), cardinality[2])
-		for ix_2 in IX_2
-            add_to_cnt!(ix_seen_cnts[2], ix_2, true, cardinality[2])
+		for i in eachindex(IX_2)
+            @inbounds add_to_cnt!(ix_seen_cnts[2], IX_2[i], true, cardinality[2])
 		end
         append_matchix!(IXs, (ix_1, IX_2), first(nonmatches), groupby)
 	end
@@ -19,8 +19,8 @@ function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), 
 end
 
 function append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing)
-    for ix_2 in IX_2
-        push!(IXs, (ix_1, ix_2))
+    for i in eachindex(IX_2)
+        push!(IXs, (ix_1, @inbounds IX_2[i]))
     end
 end
 
@@ -70,6 +70,9 @@ end |> StructArray
 empty_ix_vector(ix_T, nms::typeof(drop), group::Val{false}) = Vector{ix_T}()
 empty_ix_vector(ix_T, nms::typeof(keep), group::Val{false}) = Vector{Union{Nothing, ix_T}}()
 empty_ix_vector(ix_T, nms::typeof(only), group::Val{false}) = Vector{Nothing}()
-empty_ix_vector(ix_T, nms::typeof(drop), group::Val{true}) = Vector{Vector{ix_T}}()
-empty_ix_vector(ix_T, nms::typeof(keep), group::Val{true}) = Vector{Vector{ix_T}}()
+empty_ix_vector(ix_T, nms::typeof(drop), group::Val{true}) = VectorOfVectors{ix_T}()
+empty_ix_vector(ix_T, nms::typeof(keep), group::Val{true}) = VectorOfVectors{ix_T}()
 empty_ix_vector(ix_T, nms::typeof(only), group::Val{true}) = Vector{EmptyVector{ix_T, Vector}}()
+
+# https://github.com/JuliaArrays/StructArrays.jl/issues/228
+StructArrays.maybe_convert_elt(::Type{T}, vals::Tuple) where {T} = vals
