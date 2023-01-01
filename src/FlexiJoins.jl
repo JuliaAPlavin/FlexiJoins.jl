@@ -38,16 +38,16 @@ include("nearestneighbors.jl")
 
 function __init__()
     @require DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0" @require Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c" begin
-        using .DataFrames: DataFrame
+        using .DataFrames: DataFrame, AbstractDataFrame
         using .Tables: columntable
 
-        function _flexijoin(datas::Tuple{DataFrame, DataFrame}, args...; kwargs...)
+        function _flexijoin(datas::Tuple{<:AbstractDataFrame, <:AbstractDataFrame}, args...; kwargs...)
             datas = map(to_table_for_join, datas)
             res = innerjoin(datas, args...; kwargs...)
             return hcat(map(to_df_joined, StructArrays.components(res))...; makeunique=true)
         end
 
-        to_table_for_join(xs::DataFrame) = StructArray(columntable(xs))
+        to_table_for_join(xs::AbstractDataFrame) = StructArray(columntable(xs))
         to_df_joined(xs::AbstractArray) = DataFrame(xs)
         function to_df_joined(xs::SentinelView)
             base_eltype = eltype(parent(xs))
