@@ -2,6 +2,7 @@ using FlexiJoins
 using FlexiJoins: normalize_arg, ByKey, Mode
 using StructArrays, TypedTables
 using StaticArrays
+using NearestNeighbors
 using OffsetArrays
 using Dictionaries: dictionary
 using DataFrames
@@ -62,7 +63,7 @@ OM = (;O=objects, M=measurements)
         [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5])]
     @test joinindices((objects, measurements), by_key(@optic(_.obj)); groupby=1) ==
         [(1, [1, 2, 3, 4]), (2, [5])]
-    @test_broken joinindices(OM, by_key(@optic(_.obj)); groupby=:M)
+    @test joinindices(OM, by_key(@optic(_.obj)); groupby=:M) == [(O=[1], M=1), (O=[1], M=2), (O=[1], M=3), (O=[1], M=4), (O=[2], M=5)]
     test_unique_setequal(
         joinindices(OM, by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
         [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5]), (O=3, M=[]), (O=4, M=[]), (O=nothing, M=[6, 7, 8])]
@@ -296,6 +297,11 @@ end
     @test_throws AssertionError joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 2:100))
 end
 
+@testset "show" begin
+    @test string(by_key(@optic(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3)) & not_same()) ==
+        "by_key((@optic _.a[12]) == (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0) & not_same(order_matters=true)"
+end
+
 function test_modes(modes, args...; alloc=true, kwargs...)
     base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
     @testset for mode in [nothing; modes]
@@ -438,14 +444,9 @@ end
     end
 end
 
-@testset "show" begin
-    @test string(by_key(@optic(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3))) ==
-        "by_key((@optic _[12]) ∘ (@optic _.a), (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0)"
-end
-
 
 import CompatHelperLocal as CHL
 CHL.@check()
 
 import Aqua
-Aqua.test_all(FlexiJoins; ambiguities=false)
+Aqua.test_all(FlexiJoins; ambiguities=false, stale_deps=false)

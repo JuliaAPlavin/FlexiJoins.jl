@@ -4,6 +4,8 @@ struct ByPred{TP, TL, TR} <: JoinCondition
     pred::TP
 end
 
+Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")
+
 swap_sides(c::ByPred) = ByPred(c.Rf, c.Lf, swap_sides(c.pred))
 swap_sides(::typeof(∈)) = ∋
 swap_sides(::typeof(∋)) = ∈
@@ -107,28 +109,10 @@ sort_byf(cond::ByPred{<:Union{typeof.((⊋, ⊇))...}}) = leftendpoint ∘ cond.
 end
 
 # Tree for overlaps
-prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) =
-    (X, NN.KDTree(map(wrap_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
-function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree)::Tuple, multi::typeof(identity))
-    leftint = cond.Lf(a)
-    @p inrect(tree, wrap_vector((-Inf, leftendpoint(leftint))), wrap_vector((rightendpoint(leftint), Inf))) |>
-        filter!(cond.pred(leftint, cond.Rf(B[_])))
-end
+# signature should be the same as in nearestneighbors.jl:
+prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) = error("Load NearestNeighbors.jl to use tree-based join conditions")
 
 
 # helper functions
 searchsorted_in(A, X) = @p X |> Iterators.map(searchsorted(A, _)) |> Iterators.flatten() |> unique
-
-if isdefined(IntervalSets, :searchsorted_interval)
-    # IntervalSets 0.7.1+
-    # at some point, remove the block below and bump compat
-    searchsorted_in(arr, int::Interval) = searchsorted_interval(arr, int)
-else
-    searchsorted_in(arr, int::Interval{:closed, :closed}) = searchsortedfirst(arr, minimum(int)):searchsortedlast(arr, maximum(int))
-    searchsorted_in(arr, int::Interval{:closed,   :open}) = searchsortedfirst(arr, minimum(int)):(searchsortedfirst(arr, supremum(int)) - 1)
-    searchsorted_in(arr, int::Interval{  :open, :closed}) = (searchsortedlast(arr, infimum(int)) + 1):searchsortedlast(arr, maximum(int))
-    searchsorted_in(arr, int::Interval{  :open,   :open}) = (searchsortedlast(arr, infimum(int)) + 1):(searchsortedfirst(arr, supremum(int)) - 1)
-end
-
-
-Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")
+searchsorted_in(arr, int::Interval) = searchsorted_interval(arr, int)

@@ -2,6 +2,8 @@ struct NotSame <: JoinCondition
     order_matters::Bool
 end
 
+Base.show(io::IO, c::NotSame) = print(io, "not_same(order_matters=", c.order_matters, ")")
+
 not_same(; order_matters=true) = NotSame(order_matters)
 
 normalize_arg(cond::NotSame, datas) = (@assert length(datas) == 2; cond)

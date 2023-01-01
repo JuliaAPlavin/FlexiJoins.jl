@@ -7,8 +7,6 @@ using Accessors
 using DataPipes
 using SplitApplyCombine: mapview
 using IntervalSets
-import NearestNeighbors as NN
-using StaticArrays: SVector  # used in NearestNeighbors anyways
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 using ArraysOfArrays: VectorOfVectors
 using Requires
@@ -52,6 +50,10 @@ function __init__()
             empty_row = constructorof(base_eltype)(ntuple(_ -> missing, fieldcount(base_eltype))...)
             DataFrame(x isa base_eltype ? x : empty_row for x in xs)
         end
+    end
+
+    @require NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce" begin
+        @require StaticArrays = "90137ffa-7385-5640-81b9-e52037218182" include("nearestneighbors.jl")
     end
 end
 

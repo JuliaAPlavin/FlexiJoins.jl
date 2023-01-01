@@ -8,6 +8,17 @@ struct ByKey{TFs} <: JoinCondition
     keyfuncs::TFs
 end
 
+function Base.show(io::IO, c::ByKey)
+    print(io, "by_key(")
+    @assert length(c.keyfuncs) ∈ (1, 2)
+    show(io, c.keyfuncs[1])
+    if length(c.keyfuncs) == 2
+        print(io, " == ")
+        show(io, c.keyfuncs[2])
+    end
+    print(io, ")")
+end
+
 swap_sides(c::ByKey) = ByKey(swap_sides(c.keyfuncs))
 
 eval_keyfunc(f, ix, x) = f(x)
@@ -124,15 +135,4 @@ for F in (identity, first, last)
         b = get(B, keyval(cond, first, ix_a, a), nothing)
         isnothing(b) ? MaybeVector{valtype(B)}() : MaybeVector{valtype(B)}(b)
     end
-end
-
-
-
-function Base.show(io::IO, c::ByKey)
-    print(io, "by_key(")
-    for (i, f) in enumerate(c.keyfuncs)
-        i > 1 && print(io, ", ")
-        show(io, f)
-    end
-    print(io, ")")
 end
