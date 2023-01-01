@@ -46,12 +46,10 @@ prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_
 findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), a, Bdata, multi)
 
 prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
-function findmatchix_wix!(IX_2_prealloc, mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi::typeof(identity))
-    for aa in cond.Lf(a)
-        append!(IX_2_prealloc, findmatchix(mode, by_key(identity, nothing), aa, Bdata, multi))
-    end
-    IX_2_prealloc
-end
+findmatchix_wix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi::typeof(identity)) =
+    @p cond.Lf(a) |>
+        Iterators.map(findmatchix(mode, by_key(identity, nothing), _, Bdata, multi)) |>
+        Iterators.flatten()
 
 
 sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
@@ -78,10 +76,13 @@ sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
 
 @inbounds function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
     arr = mapview(i -> cond.Rf(B[i]), perm)
-    @view perm[searchsorted_in(arr, cond.Lf(a))]
+    do_view(perm, searchsorted_in(arr, cond.Lf(a)))
 end
 
-searchsorted_in(A, X) = mapreduce(x -> searchsorted(A, x), vcat, X)
+do_view(A, I::AbstractArray) = @view A[I]
+do_view(A, I) = @p I |> Iterators.map(A[_])
+
+searchsorted_in(A, X) = @p X |> Iterators.map(searchsorted(A, _)) |> Iterators.flatten()
 
 searchsorted_in(arr, int::Interval{:closed, :closed}) = searchsortedfirst(arr, minimum(int)):searchsortedlast(arr, maximum(int))
 searchsorted_in(arr, int::Interval{:closed,   :open}) = searchsortedfirst(arr, minimum(int)):(searchsortedfirst(arr, supremum(int)) - 1)
