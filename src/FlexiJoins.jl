@@ -80,9 +80,8 @@ function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=no
 end
 
 function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode)
-    mode = if !isnothing(choose_mode(mode, cond, datas))
-        choose_mode(mode, cond, datas)
-    elseif !isnothing(choose_mode(mode, swap_sides(cond), swap_sides(datas)))
+    first_side = which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode)
+    if first_side == 2
         return _joinindices(
             swap_sides(datas),
             swap_sides(cond),
@@ -90,18 +89,40 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
             swap_sides(nonmatches),
             swap_sides(groupby),
             swap_sides(cardinality),
-            choose_mode(mode, swap_sides(cond), swap_sides(datas)),
+            mode,
         ) |> swap_sides
-    else
-        error("No known mode supported by $cond")
     end
+    @assert first_side == 1
 
     if any(@. multi !== identity && nonmatches !== drop)
         error("Values of arguments don't make sense together: ", (; nonmatches, multi))
     end
+
+    mode = choose_mode(mode, cond, datas)
 	IXs = create_ix_array(datas, nonmatches, groupby)
 	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality)
 end
+
+function which_side_first(datas, cond, multi::Tuple{typeof(identity), typeof(identity)}, nonmatches, groupby::Nothing, cardinality, mode)
+    mode_1 = choose_mode(mode, cond, datas)
+    mode_2 = choose_mode(mode, swap_sides(cond), swap_sides(datas))
+    if !isnothing(mode_1) && !isnothing(mode_2)
+        preferred_first_side(datas, cond, mode)
+    elseif !isnothing(mode_1)
+        StaticInt(1)
+    elseif !isnothing(mode_2)
+        StaticInt(2)
+    else
+        error("No known mode supported by $cond")
+    end
+end
+which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Nothing, cardinality, mode) = StaticInt(1)
+which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, groupby::Nothing, cardinality, mode) = StaticInt(2)
+which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::StaticInt{1}, cardinality, mode) = StaticInt(1)
+which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, groupby::StaticInt{2}, cardinality, mode) = StaticInt(2)
+which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode) = error("Unsupported parameter combination")
+
+preferred_first_side(datas, cond, mode) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
 
 
 materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
