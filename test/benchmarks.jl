@@ -67,7 +67,7 @@ end
 function autotimed(f; mintime=0.05)
 	f()
 	T = @timed f()
-	T.time > mintime && return (; T.time, T.gctime, T.bytes, T.value)
+	T.time > mintime && return (; T.time, T.gctime, T.bytes, nallocs=T.gcstats.poolalloc / 1, T.value)
 	n = 1
 	while true
 		n *= clamp(mintime / T.time, 1.2, 100)
@@ -77,7 +77,7 @@ function autotimed(f; mintime=0.05)
 			end
 			f()
 		end
-		T.time > mintime && return (; time=T.time / n, gctime=T.gctime / n, bytes=T.bytes ÷ n, T.value)
+		T.time > mintime && return (; time=T.time / n, gctime=T.gctime / n, bytes=T.bytes ÷ n, nallocs=T.gcstats.poolalloc / n, T.value)
 	end
 end
 
@@ -93,15 +93,16 @@ times = map(grid(N=10 .^ (0:5), M=10 .^ (0:5), join=[:Flexi, :SAC, :DF])) do p
 		R = DataFrames.DataFrame(LR.R)
 		autotimed(() -> DataFrames.innerjoin(L, R; makeunique=true, on=:name)[!, :value] |> sum)
 	end
-	(; timed.time, timed.gctime, timed.bytes, nmatches=timed.value)
+	(; timed.time, timed.gctime, timed.bytes, timed.nallocs, nmatches=timed.value)
 end;
 
 # ╔═╡ a11deb65-a6d9-40db-b5f3-bb568a50c69e
 let
 	df = @p times |> rowtable |> map((;_.join, _.N, _.M, var"N + M"=_.N+_.M, maxNM=max(_.N, _.M), gcfrac=_.value.gctime / _.value.time, _.value...))
 	ch = altChart(df)
-	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:join)).mark_line(point=false) |
-		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:join)).mark_line()
+	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:join)).mark_line() |
+		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:join)).mark_line() |
+		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:nallocs, scale=alt.Scale(type=:log)), alt.Color(:join)).mark_line()
 	altVLSpec(ch)
 end
 
@@ -121,15 +122,16 @@ times_flexi = map(grid(N=10 .^ (0:5), M=10 .^ (0:5), cond=[:key_1, :key_2, :key_
 	elseif p.cond == :multi
 		autotimed(() -> @p flexijoin(LR, by_key(@o(_.name)) & by_pred(@o(_.value), <, @o(_.value)); multi=(R=closest,)) |> count(_.R.value > -10000))
 	end
-	(; timed.time, timed.gctime, timed.bytes, nmatches=timed.value)
+	(; timed.time, timed.gctime, timed.bytes, timed.nallocs, nmatches=timed.value)
 end;
 
 # ╔═╡ 38ffdb28-c567-4b68-b14e-1bd5919f4816
 let
 	df = @p times_flexi |> rowtable |> map((;_.cond, _.N, _.M, var"N + M"=_.N+_.M, maxNM=max(_.N, _.M), gcfrac=_.value.gctime / _.value.time, _.value...))
 	ch = altChart(df)
-	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line(point=false) |
-		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line()
+	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line() |
+		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line() |
+		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:nallocs, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line()
 	altVLSpec(ch)
 end
 
@@ -389,7 +391,7 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 deps = ["Accessors", "DataAPI", "DataPipes", "Indexing", "IntervalSets", "MicroCollections", "NearestNeighbors", "SplitApplyCombine", "Static", "StructArrays"]
 path = "../../home/aplavin/.julia/dev/FlexiJoins"
 uuid = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
-version = "0.1.8"
+version = "0.1.10"
 
 [[deps.Formatting]]
 deps = ["Printf"]
