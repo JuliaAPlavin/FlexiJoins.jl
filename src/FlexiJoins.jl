@@ -63,4 +63,10 @@ findmatchix(cond::JoinCondition, aview, B, multi::typeof(last)) = let
 end
 
 
+
+materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
+materialize_views(A::ViewVector) = collect(A)
+materialize_views(A::Vector{<:ViewVector}) = map(materialize_views, A)
+materialize_views(A) = A
+
 end
