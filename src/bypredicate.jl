@@ -22,7 +22,7 @@ is_match(by::ByPred, a, b) = by.pred(by.Lf(a), by.Rf(b))
 supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
 supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
 
-sort_byf(which, cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = which((cond.Lf, cond.Rf))
+sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
 
 searchsorted_matchix(cond::ByPred{typeof(<)}, a, B, perm) =
     @view perm[searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) + 1:end]

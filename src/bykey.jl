@@ -19,7 +19,7 @@ is_match(by::ByKey, a, b) = get_actual_keyfunc(first(by.keyfuncs))(a) == get_act
 
 
 supports_mode(::Mode.SortChain, ::ByKey, datas) = true
-sort_byf(which, cond::ByKey) = get_actual_keyfunc(which(cond.keyfuncs))
+sort_byf(cond::ByKey) = get_actual_keyfunc(last(cond.keyfuncs))
 searchsorted_matchix(cond::ByKey, a, B, perm) =
     @view perm[searchsorted(
         mapview(i -> get_actual_keyfunc(last(cond.keyfuncs))(B[i]), perm),
@@ -29,9 +29,8 @@ searchsorted_matchix(cond::ByKey, a, B, perm) =
 
 supports_mode(::Mode.Hash, ::ByKey, datas) = true
 
-function prepare_for_join(::Mode.Hash, which, datas, cond::ByKey, multi::typeof(identity))
-    keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
-    X = which(datas)
+function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
+    keyfunc = get_actual_keyfunc(last(cond.keyfuncs))
     dct = Dict{
         typeof(keyfunc(first(X))),
         Vector{eltype(keys(X))}
@@ -42,9 +41,8 @@ function prepare_for_join(::Mode.Hash, which, datas, cond::ByKey, multi::typeof(
     return dct
 end
 
-function prepare_for_join(::Mode.Hash, which, datas, cond::ByKey, multi::Union{typeof(first), typeof(last)})
-    keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
-    X = which(datas)
+function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first), typeof(last)})
+    keyfunc = get_actual_keyfunc(last(cond.keyfuncs))
     dct = Dict{
         typeof(keyfunc(first(X))),
         eltype(keys(X))
