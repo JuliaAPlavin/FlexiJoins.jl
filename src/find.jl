@@ -8,7 +8,7 @@
 #     isnothing(ix) ? [] : [ix]
 # end
 
-function optimize(X::AbstractArray, cond::ByKey, multi::typeof(identity))
+function optimize(X, cond::ByKey, multi::typeof(identity))
     dct = Dict{
         typeof(cond.keyfunc(first(X))),
         Vector{eltype(keys(X))}
@@ -19,7 +19,7 @@ function optimize(X::AbstractArray, cond::ByKey, multi::typeof(identity))
     return dct
 end
 
-function optimize(X::AbstractArray, cond::ByKey, multi::typeof(first))
+function optimize(X, cond::ByKey, multi::typeof(first))
     dct = Dict{
         typeof(cond.keyfunc(first(X))),
         eltype(keys(X))
@@ -30,7 +30,7 @@ function optimize(X::AbstractArray, cond::ByKey, multi::typeof(first))
     return dct
 end
 
-function optimize(X::AbstractArray, cond::ByKey, multi::typeof(last))
+function optimize(X, cond::ByKey, multi::typeof(last))
     dct = Dict{
         typeof(cond.keyfunc(first(X))),
         eltype(keys(X))

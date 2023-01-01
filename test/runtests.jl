@@ -1,6 +1,7 @@
 using FlexiJoins
 using FlexiJoins: NothingIndex
 using StructArrays, TypedTables
+using Dictionaries: dictionary
 using Test
 
 
@@ -66,6 +67,11 @@ end
 
     @testset "typedtable" begin
         @test flexijoin((objects |> Table, measurements |> Table), by_key(@optic(_.obj))) ==
+            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+    end
+
+    @testset "dictionary" begin
+        @test flexijoin((objects, dictionary('a':'h' .=> measurements)), by_key(@optic(_.obj))) ==
             [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
     end
 end
