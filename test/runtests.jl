@@ -317,15 +317,15 @@ end
     measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
     OM = (;O=objects, M=measurements)
 
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=1, M=1))
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=*, M=0))
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=0, M=*))
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=*, M=+))
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=+, M=*))
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=+, M=+))
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(M=+,))
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(M=0:1,))
-    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=1:3,))
+    @test_throws "got 2, expected 1" joinindices(OM, by_key(:obj); cardinality=(O=1, M=1))
+    @test_throws "got 1, expected 0" joinindices(OM, by_key(:obj); cardinality=(O=*, M=0))
+    @test_throws "got 1, expected 0" joinindices(OM, by_key(:obj); cardinality=(O=0, M=*))
+    @test_throws "got 0, expected +" joinindices(OM, by_key(:obj); cardinality=(O=*, M=+))
+    @test_throws "got 0, expected +" joinindices(OM, by_key(:obj); cardinality=(O=+, M=*))
+    @test_throws "got 0, expected +" joinindices(OM, by_key(:obj); cardinality=(O=+, M=+))
+    @test_throws "got 0, expected +" joinindices(OM, by_key(:obj); cardinality=(M=+,))
+    @test_throws "got 2, expected 0:1" joinindices(OM, by_key(:obj); cardinality=(M=0:1,))
+    @test_throws "got 0, expected 1:3" joinindices(OM, by_key(:obj); cardinality=(O=1:3,))
     J = joinindices(OM, by_key(:obj))
     @test joinindices(OM, by_key(:obj); cardinality=(M=*,)) == J
     @test joinindices(OM, by_key(:obj); cardinality=(M=0:4,)) == J
@@ -335,8 +335,8 @@ end
     joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 1))
     joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, +))
     joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(O=+,))
-    @test_throws AssertionError joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 0))
-    @test_throws AssertionError joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 2:100))
+    @test_throws "got 1, expected 0" joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 0))
+    @test_throws "got 1, expected 2:100" joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 2:100))
 end
 
 @testitem "show" begin
