@@ -96,7 +96,7 @@ end
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O)
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O, nonmatches=keep)
     end
-    test_modes([Mode.NestedLoop(), Mode.Sort()], (;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
+    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
     test_modes([Mode.NestedLoop(), Mode.Sort()], (;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,))
 end
 
@@ -133,3 +133,6 @@ end
 
 import CompatHelperLocal as CHL
 CHL.@check()
+
+import Aqua
+Aqua.test_all(FlexiJoins; ambiguities=false)
