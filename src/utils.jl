@@ -87,3 +87,12 @@ Base.@propagate_inbounds function Base.getindex(a::MaybeVector)
     end
     return a.data
 end
+
+
+# somehow, simple iteration of a view calls checkbounds...?
+foreach_inbounds(f, A::AbstractArray) = for i in eachindex(A)
+    f(@inbounds A[i])
+end
+foreach_inbounds(f, A) = for a in A
+    f(a)
+end
