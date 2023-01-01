@@ -3,16 +3,17 @@ function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), A
 	fill_ix_array_!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, last_optimized)
 end
 
+const CNT_T = Int8
 function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
 	ix_seen_cnts = map(datas) do data
-		map(Returns(0), data)
+		map(Returns(CNT_T(0)), data)
 	end
 	@inbounds for (ix_1, x_1) in pairs(first(datas))
         IX_2 = findmatchix(mode, cond, x_1, last_optimized, last(multi))
-		ix_seen_cnts[1][ix_1] += length(IX_2)
+		ix_seen_cnts[1][ix_1] = min(ix_seen_cnts[1][ix_1] + length(IX_2), typemax(CNT_T))
 		@assert length(IX_2) ∈ cardinality[2]
 		for ix_2 in IX_2
-			ix_seen_cnts[2][ix_2] += 1
+			ix_seen_cnts[2][ix_2] = min(ix_seen_cnts[2][ix_2] + Int8(1), typemax(CNT_T))
 		end
         append_matchix!(IXs, (ix_1, IX_2), first(nonmatches), groupby)
 	end
@@ -21,25 +22,24 @@ function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), 
 end
 
 function append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing)
-    append!(StructArrays.component(IXs, 1), StepRangeLen(ix_1, 0, length(IX_2)))
-    append!(StructArrays.component(IXs, 2), IX_2)
+    for ix_2 in IX_2
+        push!(IXs, (ix_1, ix_2))
+    end
 end
 
 append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::StaticInt{1}) = isempty(IX_2) || push!(IXs, (ix_1, IX_2))
 append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::StaticInt{1}) = push!(IXs, (ix_1, IX_2))
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::Nothing)
-    IX_1 = @p ix_seen_cnts[1] |> findall(==(0))
-    for ix_1 in IX_1
-        push!(IXs, (ix_1, nothing))
+    for (ix_1, cnt) in pairs(ix_seen_cnts[1])
+        cnt == 0 && push!(IXs, (ix_1, nothing))
     end
     IXs
 end
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(keep)}, groupby::Nothing)
-    IX_2 = @p ix_seen_cnts[2] |> findall(==(0))
-    for ix_2 in IX_2
-        push!(IXs, (nothing, ix_2))
+    for (ix_2, cnt) in pairs(ix_seen_cnts[2])
+        cnt == 0 && push!(IXs, (nothing, ix_2))
     end
     IXs
 end

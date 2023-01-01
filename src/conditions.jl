@@ -23,13 +23,27 @@ choose_mode(mode::Nothing, cond, datas) =
     supports_mode(Mode.Sort(), cond, datas) ? Mode.Sort() :
     nothing
 
+preferred_first_side(datas, cond, ::Mode.Sort) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
+preferred_first_side(datas, cond, ::Mode.Hash) = length(datas[1]) < length(datas[2]) ? StaticInt(2) : StaticInt(1)
+preferred_first_side(datas, cond, ::Mode.Tree) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
+
 
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propagate_empty(minimum, findmatchix(mode, cond, a, B_prep, identity))
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
 
 
 prepare_for_join(::Mode.NestedLoop, X, cond::JoinCondition) = X
-findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity)) = findall(map(b -> is_match(cond, a, b), B))
+function findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity))
+    res = eltype(keys(B))[]
+    for (i, b) in pairs(B)
+        if is_match(cond, a, b)
+            push!(res, i)
+        end
+    end
+    return res
+end
+firstn_by!(A::Vector, n=1; by) = view(partialsort!(A, 1:min(n, length(A)); by), 1:min(n, length(A)))
+
 propagate_empty(func::typeof(identity), arr) = arr
 propagate_empty(func::Union{typeof.((first, last))...}, arr) = func(arr, 1)
 propagate_empty(func::Union{typeof.((minimum, maximum))...}, arr) = isempty(arr) ? arr : [func(arr)]

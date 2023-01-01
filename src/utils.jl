@@ -36,3 +36,30 @@ myview(A::Tuple, I::StructArray{<:Tuple}) =
     map(A, StructArrays.components(I)) do A, I
         myview(A, I)
     end |> StructArray
+
+
+
+# from https://github.com/andyferris/AcceleratedArrays.jl/blob/master/src/MaybeVector.jl
+struct MaybeVector{T} <: AbstractVector{T}
+    length::UInt8
+    data::T
+
+    MaybeVector{T}() where {T} = new{T}(0x00)
+    MaybeVector{T}(x::T) where {T} = new{T}(0x01, x)
+end
+
+Base.axes(a::MaybeVector) = (Base.OneTo(a.length),)
+Base.size(a::MaybeVector) = (a.length,)
+Base.IndexStyle(::Type{<:MaybeVector}) = IndexLinear()
+Base.@propagate_inbounds function Base.getindex(a::MaybeVector, i::Integer)
+    @boundscheck if a.length != 0x01 || i != 1
+        throw(BoundsError(a, i))
+    end
+    return a.data
+end
+Base.@propagate_inbounds function Base.getindex(a::MaybeVector)
+    @boundscheck if a.length != 0x01
+        throw(BoundsError(a, i))
+    end
+    return a.data
+end

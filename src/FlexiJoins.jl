@@ -7,6 +7,7 @@ using DataPipes
 using Indexing
 using SplitApplyCombine: mapview
 using IntervalSets
+using MicroCollections: vec1
 import NearestNeighbors as NN
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 
@@ -111,7 +112,7 @@ function which_side_first(datas, cond, multi::Tuple{typeof(identity), typeof(ide
     mode_1 = choose_mode(mode, cond, datas)
     mode_2 = choose_mode(mode, swap_sides(cond), swap_sides(datas))
     if !isnothing(mode_1) && !isnothing(mode_2)
-        preferred_first_side(datas, cond, mode)
+        preferred_first_side(datas, cond, (mode_1, mode_2))
     elseif !isnothing(mode_1)
         StaticInt(1)
     elseif !isnothing(mode_2)
@@ -126,7 +127,8 @@ which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, g
 which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, groupby::StaticInt{2}, cardinality, mode) = StaticInt(2)
 which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode) = error("Unsupported parameter combination")
 
-preferred_first_side(datas, cond, mode) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
+preferred_first_side(datas, cond, modes::Tuple{M, M}) where {M} = preferred_first_side(datas, cond, first(modes))
+preferred_first_side(datas, cond, mode) = StaticInt(1)
 
 
 materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
