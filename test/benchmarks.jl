@@ -53,10 +53,11 @@ import DataFrames
 function generate_data(N, M)
 	Random.seed!(1234)
 	vmax = isqrt(N * M)  # so that number of matches comparable to N, M
+	values = rand(Int, vmax)
 	nchars = ceil(Int, vmax^(1/10))
 	chars = range('a', length=nchars)
-	L = [(name=randstring(chars, 10), value=rand(0:vmax)) for _ in 1:N]
-	R = [(name=randstring(chars, 10), value=rand(0:vmax)) for _ in 1:M]
+	L = [(name=randstring(chars, 10), value=rand(values)) for _ in 1:N]
+	R = [(name=randstring(chars, 10), value=rand(values)) for _ in 1:M]
 	return (;L, R)
 end
 
