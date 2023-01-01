@@ -54,7 +54,12 @@ propagate_empty(func::Union{typeof.((first, last))...}, arr) = func(arr, 1)
 propagate_empty(func::Union{typeof.((minimum, maximum))...}, arr) = isempty(arr) ? MaybeVector{_eltype(arr)}() : MaybeVector{_eltype(arr)}(func(arr))
 
 
-prepare_for_join(::Mode.Sort, X, cond::JoinCondition) = (X, sortperm(X; by=sort_byf(cond)))
+prepare_for_join(::Mode.Sort, X, cond::JoinCondition) = (X, mysortperm(X; by=sort_byf(cond)))
+mysortperm(X; by) = issorted(eachindex(X); by=i -> by(@inbounds X[i])) ? eachindex(X) : sort(eachindex(X); by=i -> by(@inbounds X[i]))
+# other variants, perform worse:
+# mysortperm(X; by) = sortperm(X; by)
+# mysortperm(X; by) = sort(eachindex(X); by=i -> by(@inbounds X[i]))
+# mysortperm(X; by) = sort!(StructArray(x=map(by, X), i=collect(eachindex(X)))).i
 
 findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(identity)) = searchsorted_matchix(cond, a, B, perm)
 findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(closest)) = searchsorted_matchix_closest(cond, a, B, perm)
