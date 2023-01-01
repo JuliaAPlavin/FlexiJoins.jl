@@ -16,9 +16,9 @@ is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by
 
 
 supports_mode(::Mode.Sort, ::ByDistance, datas) = true
-function sort_byf(which, cond::ByDistance)
+function sort_byf(cond::ByDistance)
     @warn "Joining by distance using componentwise sorting, this doesn't work for all distance types" cond.dist
-    x -> first(which((cond.func_L, cond.func_R))(x))
+    x -> first(cond.func_R(x))
 end
 function searchsorted_matchix(cond::ByDistance, a, B, perm)
     arr = mapview(i -> first(cond.func_R(B[i])), perm)
@@ -29,10 +29,8 @@ end
 
 
 supports_mode(::Mode.Tree, ::ByDistance, datas) = true
-function prepare_for_join(::Mode.Tree, which, datas, cond::ByDistance, multi)
-    X = which(datas)
-    (X, NN.BallTree(map(which((cond.func_L, cond.func_R)), X) |> wrap_matrix, cond.dist))
-end
+prepare_for_join(::Mode.Tree, X, cond::ByDistance, multi) =
+    (X, NN.BallTree(map(cond.func_R, X) |> wrap_matrix, cond.dist))
 findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::typeof(identity)) =
     NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
 function findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::Closest)
