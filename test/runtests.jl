@@ -167,6 +167,9 @@ end
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=+, M=+))
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=+,))
     joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=*,))
+    joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0:4,))
+    joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=0:1,))
+    joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0:4, M=0:1))
 end
 
 function test_modes(modes, args...; kwargs...)
