@@ -11,6 +11,7 @@ function fill_ix_array!(IXs, datas, cond, multi::Tuple{typeof(identity), Any}, n
 		end
         append_matchix!(IXs, (ix_1, IX_2), first(nonmatches), groupby)
 	end
+    @assert all(∈(cardinality[2]), ix_seen_cnts[2])
 	append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 
