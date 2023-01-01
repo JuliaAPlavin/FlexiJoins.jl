@@ -29,13 +29,6 @@ myview(A::Tuple, I::StructArray{<:Tuple}) =
     end |> StructArray
 
 
-materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
-materialize_views(A::VIEWTYPES) = collect(A)
-materialize_views(A::AbstractArray{<:VIEWTYPES}) = map(materialize_views, A)
-materialize_views(A::AbstractArray{<:StructArray}) = map(materialize_views, A)
-materialize_views(A) = A
-
-
 
 # from https://github.com/andyferris/AcceleratedArrays.jl/blob/master/src/MaybeVector.jl
 struct MaybeVector{T} <: AbstractVector{T}
