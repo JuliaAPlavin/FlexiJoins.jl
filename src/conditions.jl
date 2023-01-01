@@ -1,6 +1,6 @@
-is_match(by, a) = b -> is_match(by, a, b)
-
 abstract type JoinCondition end
+
+is_match(by::JoinCondition, a) = b -> is_match(by, a, b)
 
 struct CompositeCondition{TC} <: JoinCondition
     conds::TC
@@ -13,20 +13,18 @@ Base.:(&)(a::CompositeCondition, b::JoinCondition) = CompositeCondition((a.conds
 Base.:(&)(a::JoinCondition, b::CompositeCondition) = CompositeCondition((a, b.conds))
 Base.:(&)(a::CompositeCondition, b::CompositeCondition) = CompositeCondition((a.conds..., b.conds...))
 
-# function extra(E::Val, by::CompositeCondition, args...)
-# 	cond = filter(c -> applicable(extra, E, c, args...), by.conds) |> only
-# 	return extra(E, cond, args...)
-# end
 
 struct ByKey{TF} <: JoinCondition
     keyfunc::TF
 end
 
-function index end
-by_key(keyfunc::typeof(index)) = ByKey(only ∘ parentindices)
-by_key(keyfunc) = ByKey(@optic(keyfunc(_[])))
+# function index end
+# by_key(keyfunc::typeof(index)) = ByKey(only ∘ parentindices)
+by_key(keyfunc) = ByKey(keyfunc)
+
 
 is_match(by::ByKey, a, b) = by.keyfunc(a) == by.keyfunc(b)
+# is_match(by::ByKey, a) = b -> by.keyfunc(a) == by.keyfunc(b)
 
 # extra(::Val{:key}, by::ByKey, a::Nothing, b) = by.keyfunc(b)
 # extra(::Val{:key}, by::ByKey, a, b::Nothing) = by.keyfunc(a)

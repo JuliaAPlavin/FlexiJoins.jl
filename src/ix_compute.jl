@@ -2,8 +2,8 @@ function fill_ix_array!(IXs, datas, cond, multi::Tuple{typeof(identity), Any}, n
 	ix_seen_cnts = map(datas) do data
 		map(Returns(0), data)
 	end
-	for ix_1 in keys(first(datas))
-		IX_2 = findmatchix(cond, view(first(datas), ix_1), last(datas), last(multi))
+	for (ix_1, x_1) in pairs(first(datas))
+		IX_2 = findmatchix(cond, x_1, last(datas), last(multi))
 		ix_seen_cnts[1][ix_1] += length(IX_2)
 		@assert length(IX_2) ∈ cardinality[2]
 		for ix_2 in IX_2
