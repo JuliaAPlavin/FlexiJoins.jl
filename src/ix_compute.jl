@@ -24,8 +24,8 @@ function append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing)
     end
 end
 
-append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::StaticInt{1}) = isempty(IX_2) || push!(IXs, (ix_1, IX_2))
-append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::StaticInt{1}) = push!(IXs, (ix_1, IX_2))
+append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::StaticInt{1}) = isempty(IX_2) || push!(IXs, NoConvert((ix_1, IX_2)))
+append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::StaticInt{1}) = push!(IXs, NoConvert((ix_1, IX_2)))
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::Nothing)
     for (ix_1, cnt) in pairs(ix_seen_cnts[1])
@@ -48,7 +48,7 @@ end
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(keep)}, groupby::StaticInt{1})
     IX_2 = @p ix_seen_cnts[2] |> findall(==(0))
-    push!(IXs, (nothing, IX_2))
+    push!(IXs, NoConvert((nothing, IX_2)))
     IXs
 end
 
@@ -74,5 +74,8 @@ empty_ix_vector(ix_T, nms::typeof(drop), group::Val{true}) = VectorOfVectors{ix_
 empty_ix_vector(ix_T, nms::typeof(keep), group::Val{true}) = VectorOfVectors{ix_T}()
 empty_ix_vector(ix_T, nms::typeof(only), group::Val{true}) = Vector{EmptyVector{ix_T, Vector}}()
 
-# https://github.com/JuliaArrays/StructArrays.jl/issues/228
-StructArrays.maybe_convert_elt(::Type{T}, vals::Tuple) where {T} = vals
+# workaround for https://github.com/JuliaArrays/StructArrays.jl/issues/228
+struct NoConvert{T}
+    value::T
+end
+StructArrays.maybe_convert_elt(::Type{T}, vals::NoConvert) where {T} = vals.value
