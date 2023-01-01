@@ -43,17 +43,12 @@ findmatchix(mode::Union{Mode.NestedLoop, Mode.Sort, Mode.Tree}, cond::JoinCondit
 
 
 prepare_for_join(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, X, cond::JoinCondition) = X
-function findmatchix(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, cond::JoinCondition, ix_a, a, B, multi::typeof(identity))
-    res = keytype(B)[]
-    for (i, b) in pairs(B)
-        if is_match(cond, ix_a, a, i, b)
-            push!(res, i)
-        end
-    end
-    return res
-end
+findmatchix(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, cond::JoinCondition, ix_a, a, B, multi::typeof(identity)) =
+    @p pairs(B) |>
+        Iterators.filter(is_match(cond, ix_a, a, _[1], _[2])) |>
+        map(_[1])
 is_match(cond, ix_a, a, ix_b, b) = is_match(cond, a, b)
-firstn_by!(A::Vector, n=1; by) = view(partialsort!(A, 1:min(n, length(A)); by), 1:min(n, length(A)))
+
 
 matchix_postprocess_multi(IX, ::typeof(identity)) = IX
 matchix_postprocess_multi(IX, ::typeof(first)) = propagate_empty(minimum, IX)
@@ -62,17 +57,11 @@ propagate_empty(func::typeof(identity), arr) = arr
 propagate_empty(func::Union{typeof.((first, last))...}, arr) = func(arr, 1)
 propagate_empty(func::Union{typeof.((minimum, maximum))...}, arr) = isempty(arr) ? MaybeVector{_eltype(arr)}() : MaybeVector{_eltype(arr)}(func(arr))
 
-# eltype returns Any for mapped/flattened iterators
-_eltype(A::AbstractArray) = eltype(A)
-_eltype(A::T) where {T} = Core.Compiler.return_type(first, Tuple{T})
-
 
 prepare_for_join(::Mode.Sort, X, cond::JoinCondition) = (X, sortperm(X; by=sort_byf(cond)))
 
-findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(identity)) =
-    searchsorted_matchix(cond, a, B, perm)  # sort to keep same order?
-findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(closest)) =
-    searchsorted_matchix_closest(cond, a, B, perm)
+findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(identity)) = searchsorted_matchix(cond, a, B, perm)
+findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(closest)) = searchsorted_matchix_closest(cond, a, B, perm)
 
 
 struct CompositeCondition{TC} <: JoinCondition

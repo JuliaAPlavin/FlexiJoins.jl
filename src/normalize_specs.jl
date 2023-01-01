@@ -12,6 +12,7 @@ normalize_groupby(x::Integer, datas::Tuple) = StaticInt(x)
 normalize_groupby(x::Symbol, datas::NamedTuple{NS}) where {NS} = StaticInt(findfirst(==(x), NS))
 
 normalize_arg(::Nothing, datas; default) = ntuple(Returns(default), length(datas))
+normalize_arg(x::JoinCondition, datas) = x
 normalize_arg(x, datas; default) = ntuple(Returns(x), length(datas))
 normalize_arg(x::Tuple, datas::Union{NamedTuple, Tuple}; default) = (@assert length(x) == length(datas); x)
 normalize_arg(x::NamedTuple{NSx}, datas::NamedTuple{NS}; default) where {NSx, NS} = let

@@ -21,9 +21,9 @@ export
 
 
 include("utils.jl")
+include("conditions.jl")
 include("normalize_specs.jl")
 include("counting.jl")
-include("conditions.jl")
 include("prepare_cache.jl")
 include("bykey.jl")
 include("bydistance.jl")

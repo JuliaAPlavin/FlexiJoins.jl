@@ -42,15 +42,12 @@ function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), t
     IXs
 end
 
-function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::StaticInt{1})
-    # these nonmatches are already appended
-    IXs
-end
+# these nonmatches are already appended
+append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::StaticInt{1}) = IXs
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(keep)}, groupby::StaticInt{1})
     IX_2 = @p ix_seen_cnts[2] |> findall(==(0))
     push!(IXs, NoConvert((nothing, IX_2)))
-    IXs
 end
 
 append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(drop)}, groupby) = IXs
@@ -74,9 +71,3 @@ empty_ix_vector(ix_T, nms::typeof(only), group::Val{false}) = Vector{Nothing}()
 empty_ix_vector(ix_T, nms::typeof(drop), group::Val{true}) = VectorOfVectors{ix_T}()
 empty_ix_vector(ix_T, nms::typeof(keep), group::Val{true}) = VectorOfVectors{ix_T}()
 empty_ix_vector(ix_T, nms::typeof(only), group::Val{true}) = Vector{EmptyVector{ix_T, Vector}}()
-
-# workaround for https://github.com/JuliaArrays/StructArrays.jl/issues/228
-struct NoConvert{T}
-    value::T
-end
-StructArrays.maybe_convert_elt(::Type{T}, vals::NoConvert) where {T} = vals.value

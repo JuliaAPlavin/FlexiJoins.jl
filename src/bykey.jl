@@ -90,18 +90,10 @@ end
         @view(rperm[1:1:0]) :
         @view(rperm[starts[group_id + 1]:-1:1 + starts[group_id]])
 end
-# two methods with the same body, for resolver disambiguation
-findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::typeof(first)) = let
-    k = first(cond.keyfuncs)(a)
-    b = get(B, k, nothing)
-    T = valtype(B)
-    isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
-end
-findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::typeof(last)) = let
-    k = first(cond.keyfuncs)(a)
-    b = get(B, k, nothing)
-    T = valtype(B)
-    isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
+
+findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::Union{typeof(first), typeof(last)}) = let
+    b = get(B, first(cond.keyfuncs)(a), nothing)
+    isnothing(b) ? MaybeVector{valtype(B)}() : MaybeVector{valtype(B)}(b)
 end
 
 

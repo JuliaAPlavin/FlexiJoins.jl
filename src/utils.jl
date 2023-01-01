@@ -37,7 +37,7 @@ Base.parentindices(a::SentinelView) = a.indices
 myview(A, I::AbstractArray) = SentinelView(A, I, nothing)
 myview(A::SentinelView, I::AbstractArray) = myview(parent(A), parentindices(A)[I])
 myview(A::SentinelView, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
-myview(A, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
+myview(A,               Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
 myview(A::NamedTuple{NS}, I::StructArray{<:NamedTuple}) where {NS} =
     if :_ ∈ NS
         merge(
@@ -71,26 +71,17 @@ materialize_views(A) = A
 
 # from https://github.com/andyferris/AcceleratedArrays.jl/blob/master/src/MaybeVector.jl
 struct MaybeVector{T} <: AbstractVector{T}
-    length::UInt8
+    length::Int8
     data::T
 
     MaybeVector{T}() where {T} = new{T}(0)
     MaybeVector{T}(x::T) where {T} = new{T}(1, x)
 end
 
-Base.axes(a::MaybeVector) = (Base.OneTo(a.length),)
 Base.size(a::MaybeVector) = (a.length,)
 Base.IndexStyle(::Type{<:MaybeVector}) = IndexLinear()
 Base.@propagate_inbounds function Base.getindex(a::MaybeVector, i::Integer)
-    @boundscheck if a.length != 1 || i != 1
-        throw(BoundsError(a, i))
-    end
-    return a.data
-end
-Base.@propagate_inbounds function Base.getindex(a::MaybeVector)
-    @boundscheck if a.length != 1
-        throw(BoundsError(a, i))
-    end
+    @boundscheck checkbounds(a, i)
     return a.data
 end
 
@@ -102,3 +93,20 @@ end
 foreach_inbounds(f, A) = for a in A
     f(a)
 end
+
+# "view" that works with array of indices (regular view) and with iterable of indices (iterator)
+_do_view(A, I::AbstractArray) = @view A[I]
+_do_view(A, I) = @p I |> Iterators.map(A[_])
+
+firstn_by!(A::AbstractVector, n=1; by) = view(partialsort!(A, 1:min(n, length(A)); by), 1:min(n, length(A)))
+
+# Base.eltype returns Any for mapped/flattened iterators
+_eltype(A::AbstractArray) = eltype(A)
+_eltype(A::T) where {T} = Core.Compiler.return_type(first, Tuple{T})
+
+
+# workaround for https://github.com/JuliaArrays/StructArrays.jl/issues/228
+struct NoConvert{T}
+    value::T
+end
+StructArrays.maybe_convert_elt(::Type{T}, vals::NoConvert) where {T} = vals.value
