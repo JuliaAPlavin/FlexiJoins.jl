@@ -70,10 +70,16 @@ end
 
 searchsorted_in(A, X) = @p X |> Iterators.map(searchsorted(A, _)) |> Iterators.flatten() |> unique
 
-searchsorted_in(arr, int::Interval{:closed, :closed}) = searchsortedfirst(arr, minimum(int)):searchsortedlast(arr, maximum(int))
-searchsorted_in(arr, int::Interval{:closed,   :open}) = searchsortedfirst(arr, minimum(int)):(searchsortedfirst(arr, supremum(int)) - 1)
-searchsorted_in(arr, int::Interval{  :open, :closed}) = (searchsortedlast(arr, infimum(int)) + 1):searchsortedlast(arr, maximum(int))
-searchsorted_in(arr, int::Interval{  :open,   :open}) = (searchsortedlast(arr, infimum(int)) + 1):(searchsortedfirst(arr, supremum(int)) - 1)
+if isdefined(IntervalSets, :searchsorted_interval)
+    # IntervalSets 0.7.1+
+    # at some point, remove the block below and bump compat
+    searchsorted_in(arr, int::Interval) = searchsorted_interval(arr, int)
+else
+    searchsorted_in(arr, int::Interval{:closed, :closed}) = searchsortedfirst(arr, minimum(int)):searchsortedlast(arr, maximum(int))
+    searchsorted_in(arr, int::Interval{:closed,   :open}) = searchsortedfirst(arr, minimum(int)):(searchsortedfirst(arr, supremum(int)) - 1)
+    searchsorted_in(arr, int::Interval{  :open, :closed}) = (searchsortedlast(arr, infimum(int)) + 1):searchsortedlast(arr, maximum(int))
+    searchsorted_in(arr, int::Interval{  :open,   :open}) = (searchsortedlast(arr, infimum(int)) + 1):(searchsortedfirst(arr, supremum(int)) - 1)
+end
 
 
 Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")
