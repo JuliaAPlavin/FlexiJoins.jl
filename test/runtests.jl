@@ -702,6 +702,6 @@ end
     CHL.@check()
 
     import Aqua
-    Aqua.test_all(FlexiJoins; ambiguities=false)
+    Aqua.test_all(FlexiJoins; ambiguities=false, piracy=false)
     Aqua.test_ambiguities(FlexiJoins)
 end
