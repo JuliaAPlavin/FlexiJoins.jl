@@ -4,6 +4,8 @@ struct ByPred{TP, TL, TR} <: JoinCondition
     pred::TP
 end
 
+Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")
+
 swap_sides(c::ByPred) = ByPred(c.Rf, c.Lf, swap_sides(c.pred))
 swap_sides(::typeof(∈)) = ∋
 swap_sides(::typeof(∋)) = ∈
@@ -117,5 +119,3 @@ end
 # helper functions
 searchsorted_in(A, X) = @p X |> Iterators.map(searchsorted(A, _)) |> Iterators.flatten() |> unique
 searchsorted_in(arr, int::Interval) = searchsorted_interval(arr, int)
-
-Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")

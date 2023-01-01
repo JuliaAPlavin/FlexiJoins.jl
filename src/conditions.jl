@@ -69,6 +69,8 @@ struct CompositeCondition{TC} <: JoinCondition
     conds::TC
 end
 
+Base.show(io::IO, c::CompositeCondition) = print(io, join(c.conds, " & "))
+
 is_match(by::CompositeCondition, args...) = all(by1 -> is_match(by1, args...), by.conds)
 
 Base.:(&)(a::JoinCondition, b::JoinCondition) = CompositeCondition((a, b))
@@ -106,6 +108,3 @@ searchsorted_matchix_closest(cond::CompositeCondition, a, B, perm) =
             searchsorted_matchix(c, a, B, P)
         end |>
         searchsorted_matchix_closest(last(cond.conds), a, B, __)
-
-
-Base.show(io::IO, c::CompositeCondition) = print(io, join(c.conds, " & "))

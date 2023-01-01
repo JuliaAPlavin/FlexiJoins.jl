@@ -6,6 +6,8 @@ struct ByDistance{TFL, TFR, TD, TP <: Union{typeof.((<, <=))...}} <: JoinConditi
     max::Float64
 end
 
+Base.show(io::IO, c::ByDistance) = print(io, "by_distance(", c.dist, '(', c.func_L, ", ", c.func_R, ") ", c.pred, ' ', c.max, ")")
+
 swap_sides(c::ByDistance) = ByDistance(c.func_R, c.func_L, c.dist, c.pred, c.max)
 
 """
@@ -64,6 +66,3 @@ wrap_matrix(X::Vector{<:Integer}) = wrap_matrix(map(float, X))
 
 wrap_vector(X::AbstractVector{<:Number}) = X
 wrap_vector(X::Number) = MaybeVector{typeof(X)}(X)
-
-
-Base.show(io::IO, c::ByDistance) = print(io, "by_distance(", c.dist, '(', c.func_L, ", ", c.func_R, ") ", c.pred, ' ', c.max, ")")
