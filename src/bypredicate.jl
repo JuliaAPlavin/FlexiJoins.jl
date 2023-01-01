@@ -4,6 +4,18 @@ struct ByPred{TP, TL, TR} <: JoinCondition
     pred::TP
 end
 
+"""
+    by_pred(f_L, pred, f_R)
+
+Join condition with `left`-`right` matches defined by `pred(f_L(left), f_R(left))`.
+
+# Examples
+
+```
+by_pred(:start_time, <, :time)
+by_pred(:time, ∈, :time_range)
+```
+"""
 by_pred(Lf, pred, Rf) = ByPred(Lf, Rf, pred)
 
 innerfunc(f::ComposedFunction) = innerfunc(f.inner)

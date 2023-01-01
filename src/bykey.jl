@@ -2,6 +2,19 @@ struct ByKey{TFs} <: JoinCondition
     keyfuncs::TFs
 end
 
+"""
+    by_key(f)
+    by_key((f_L, f_R))
+
+Join condition with `left`-`right` matches defined by `f_L(left) == f_R(right)`.
+
+# Examples
+
+```
+by_key(:name)
+by_key(:name, x -> first(x.names))
+```
+"""
 by_key(keyfunc) = ByKey(keyfunc)
 
 normalize_arg(cond::ByKey{<:NamedTuple{NSk}}, datas::NamedTuple{NS}) where {NSk, NS} = (@assert NSk == NS; ByKey(map(normalize_keyfunc, cond.keyfuncs) |> values))
