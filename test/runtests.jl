@@ -294,7 +294,7 @@ function test_modes(modes, args...; alloc=true, kwargs...)
 end
 
 @testset "join modes" begin
-    @testset for (cond, modes, kwargs) in [
+    @testset "$cond" for (cond, modes, kwargs) in [
             (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
             (by_key(x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()], (;)),
             (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
@@ -323,17 +323,18 @@ end
 
         first_M = cond isa FlexiJoins.ByPred{typeof(∈)}  # the ∈ condition only supports a single "direction"
 
-        base = joinindices((;O=objects, M=measurements), cond)
-        cache = join_cache()
-        @test isnothing(cache.prepared)
-        test_unique_setequal(joinindices((;O=objects, M=measurements), cond; cache), base)
-        @test !isnothing(cache.prepared)
-        test_unique_setequal(joinindices((;O=objects, M=measurements), cond; cache), base)
-        @test !isnothing(cache.prepared)
-        @test_throws AssertionError joinindices((;O=copy(objects), M=copy(measurements)), cond; cache)
-        @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:abc); cache)
-        @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,), cache)
-        @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; mode=Mode.NestedLoop(), cache)
+        @testset "cache" begin
+            base = joinindices(OM, cond)
+            cache = join_cache()
+            @test isnothing(cache.prepared)
+            test_unique_setequal(joinindices(OM, cond; cache), base)
+            @test !isnothing(cache.prepared)
+            test_unique_setequal(joinindices(OM, cond; cache), base)
+            @test_throws AssertionError joinindices((;O=copy(objects), M=copy(measurements)), cond; cache)
+            @test_throws AssertionError joinindices(OM, by_key(:abc); cache)
+            @test_throws AssertionError joinindices(OM, cond; multi=first_M ? (O=first,) : (M=first,), cache)
+            @test_throws AssertionError joinindices(OM, cond; mode=Mode.NestedLoop(), cache)
+        end
 
         test_modes(modes, OM, cond; multi=first_M ? (O=first,) : (M=first,), kwargs...)
 
