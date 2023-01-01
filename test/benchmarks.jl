@@ -60,9 +60,6 @@ function generate_data(N, M)
 	return (;L, R)
 end
 
-# ╔═╡ fb5c068a-7afc-488e-ada0-5c2955f6786d
-flexijoin(generate_data(10^5, 10^5), by_key(:name));
-
 # ╔═╡ 9027254a-e94b-4112-afb4-058292102e53
 # times_flexi |> DisplayAs.Unlimited
 
@@ -430,7 +427,7 @@ uuid = "08572546-2f56-4bcf-ba4e-bab62c3a3f89"
 version = "0.2.10"
 
 [[deps.FlexiJoins]]
-deps = ["Accessors", "DataPipes", "Distances", "Indexing", "IntervalSets", "NearestNeighbors", "SplitApplyCombine", "Static", "StructArrays"]
+deps = ["Accessors", "DataPipes", "Indexing", "IntervalSets", "NearestNeighbors", "SplitApplyCombine", "Static", "StructArrays"]
 path = "../../home/aplavin/.julia/dev/FlexiJoins"
 uuid = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
 version = "0.1.0"
@@ -911,7 +908,6 @@ version = "16.2.1+1"
 # ╠═1adbf990-8e33-4515-a26e-72df088ccee4
 # ╠═48694a75-d35e-44e4-baf7-b411c442c2b5
 # ╠═5518203f-b0f0-480b-bda6-1746f56057c9
-# ╠═fb5c068a-7afc-488e-ada0-5c2955f6786d
 # ╠═8b9b772d-5496-4ab9-82b1-7ee53d365545
 # ╠═0b8f88da-621b-453c-a6d8-826629cd6738
 # ╠═9027254a-e94b-4112-afb4-058292102e53
