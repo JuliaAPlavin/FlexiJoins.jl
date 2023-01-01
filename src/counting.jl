@@ -1,0 +1,30 @@
+cardinality_ok(cnt::Integer, card::Integer) = cnt == card
+cardinality_ok(cnt::Integer,   ::typeof(*)) = true
+cardinality_ok(cnt::Nothing,   ::typeof(*)) = true
+cardinality_ok(cnt::Integer,   ::typeof(+)) = cnt > 0
+
+
+create_cnts(datas, nonmatches, cardinality) = ntuple(2) do i
+    T = min_cnt_type_promote(
+        min_cnt_type_nonmatches(nonmatches[i]),
+        min_cnt_type_cardinality(cardinality[i]),
+    )
+    map(Returns(create_zero(T)), datas[i])
+end
+
+create_zero(::Type{T}) where {T} = T(0)
+create_zero(::Type{Nothing}) = nothing
+
+min_cnt_type_nonmatches(::typeof(drop)) = Nothing
+min_cnt_type_nonmatches(::typeof(keep)) = Bool
+min_cnt_type_cardinality(::typeof(*)) = Nothing
+min_cnt_type_cardinality(::typeof(+)) = Bool
+min_cnt_type_cardinality(x::Integer) = x == 0 ? Nothing : x == 1 ? Bool : (@assert 0 <= x < typemax(Int8); Int8)
+min_cnt_type_promote(::Type{Ta}, ::Type{Tb}) where {Ta, Tb} = sizeof(Ta) > sizeof(Tb) ? Ta : Tb
+
+function add_to_cnt!(cnts::AbstractVector{<:Integer}, ix, val, cardinality)
+    @assert cardinality_ok(cnts[ix] + val, cardinality)
+    cnts[ix] = min(cnts[ix] + val, typemax(valtype(cnts)))
+end
+add_to_cnt!(cnts::AbstractVector{Nothing}, ix, val, cardinality) = nothing
+add_to_cnt!(cnts::AbstractVector{Nothing}, ix, val, cardinality::Integer) = @assert cardinality != 0
