@@ -46,10 +46,12 @@ prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_
 findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, a, Bdata, multi) = findmatchix(mode, by_key((cond.Lf,), nothing), a, Bdata, multi)
 
 prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, (cond.Rf,)), multi)
-findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, a, Bdata, multi::typeof(identity)) =
-    mapreduce(vcat, cond.Lf(a)) do aa
-        findmatchix(mode, by_key((identity,), nothing), aa, Bdata, multi)
+function findmatchix_wix!(IX_2_prealloc, mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi::typeof(identity))
+    for aa in cond.Lf(a)
+        append!(IX_2_prealloc, findmatchix(mode, by_key((identity,), nothing), aa, Bdata, multi))
     end
+    IX_2_prealloc
+end
 
 
 sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf

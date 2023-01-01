@@ -39,6 +39,7 @@ normalize_keyfunc(x) = x
 normalize_keyfunc(x::Symbol) = Accessors.PropertyLens{x}()
 
 
+findmatchix_wix!(IX_2_prealloc, mode, cond::JoinCondition, ix_1, x_1, B_prep, multi) = findmatchix_wix(mode, cond, ix_1, x_1, B_prep, multi)
 findmatchix_wix(mode, cond::JoinCondition, ix_1, x_1, B_prep, multi) = findmatchix(mode, cond, x_1, B_prep, multi)
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propagate_empty(minimum, findmatchix(mode, cond, a, B_prep, identity))
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
@@ -93,9 +94,11 @@ supports_mode(mode::Mode.Sort, cond::CompositeCondition, datas) =
 
 prepare_for_join(mode::Mode.Hash, X, cond::CompositeCondition, multi) = prepare_for_join(mode, X, first(cond.conds), multi)
 
-findmatchix_wix(mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) =
-    @p findmatchix(mode, first(cond.conds), a, X, multi) |>
-        filter(is_match_ix(last(cond.conds), ix_a, _))
+findmatchix_wix!(IX_2_prealloc, mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) = 
+    append!(IX_2_prealloc,
+        ix_2 for ix_2 in findmatchix(mode, first(cond.conds), a, X, multi)
+        if is_match_ix(last(cond.conds), ix_a, ix_2)
+    )
 
 
 sort_byf(cond::CompositeCondition) = x -> map(c -> sort_byf(c)(x), cond.conds)
