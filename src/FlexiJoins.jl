@@ -1,7 +1,7 @@
 module FlexiJoins
 
 using StructArrays
-using Static: StaticInt, known
+using Static: StaticInt
 using Accessors
 using DataPipes
 using Indexing

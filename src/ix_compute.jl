@@ -64,7 +64,7 @@ create_ix_array(datas, nonmatches, groupby::Nothing) = map(datas, reverse(nonmat
 end |> StructArray
 
 create_ix_array(datas, nonmatches, groupby::StaticInt) = map(ntuple(identity, length(datas)), datas, reverse(nonmatches)) do i, X, nms
-    empty_ix_vector(keytype(X), nms, Val(i != known(groupby)))
+    empty_ix_vector(keytype(X), nms, Val(i != groupby))
 end |> StructArray
 
 empty_ix_vector(ix_T, nms::typeof(drop), group::Val{false}) = Vector{ix_T}()

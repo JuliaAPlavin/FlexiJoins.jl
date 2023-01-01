@@ -25,9 +25,9 @@ choose_mode(mode::Nothing, cond, datas) =
     supports_mode(Mode.NestedLoopFast(), cond, datas) ? Mode.NestedLoopFast() :
     nothing
 
-preferred_first_side(datas, cond, ::Mode.Sort) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
-preferred_first_side(datas, cond, ::Mode.Hash) = length(datas[1]) < length(datas[2]) ? StaticInt(2) : StaticInt(1)
-preferred_first_side(datas, cond, ::Mode.Tree) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
+preferred_first_side(datas, cond, ::Mode.Sort) = StaticInt(length(datas[1]) > length(datas[2]) ? 2 : 1)
+preferred_first_side(datas, cond, ::Mode.Hash) = StaticInt(length(datas[1]) < length(datas[2]) ? 2 : 1)
+preferred_first_side(datas, cond, ::Mode.Tree) = StaticInt(length(datas[1]) > length(datas[2]) ? 2 : 1)
 
 
 normalize_keyfunc(x::Tuple) = let
