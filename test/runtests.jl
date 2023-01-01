@@ -62,9 +62,10 @@ end
     @test normalize_arg(by_key(:obj), ([], [])) == ByKey(((@optic(_.obj),), (@optic(_.obj),)))
     @test normalize_arg(by_key((:obj, @optic(_.name))), ([], [])) == ByKey(((@optic(_.obj), @optic(_.name)), (@optic(_.obj), @optic(_.name))))
     @test normalize_arg(by_key((A=@optic(_.name), B=:obj)), (A=[], B=[])) == ByKey(((@optic(_.name),), (@optic(_.obj),)))
+    @test normalize_arg(by_pred(@optic(_.name), isequal, :obj), ([], [])) == ByKey(((@optic(_.name),), (@optic(_.obj),)))
 end
 
-@testset "other types" verbose=true begin
+@testset "other types" begin
     @testset "tuple" begin
         @test flexijoin((objects, measurements), by_key(@optic(_.obj))) ==
             [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]

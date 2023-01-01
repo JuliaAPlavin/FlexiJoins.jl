@@ -5,17 +5,19 @@ using Static: StaticInt, known
 using Accessors
 using DataPipes
 using Indexing
+using SplitApplyCombine: mapview
 
 
 export
     flexijoin, joinindices, @optic,
-    by_key, by_distance,
+    by_key, by_distance, by_pred,
     keep, drop
 
 
 include("nothingindex.jl")
 include("conditions.jl")
-include("find.jl")
+include("bykey.jl")
+include("bypredicate.jl")
 include("normalize_specs.jl")
 include("ix_compute.jl")
 
