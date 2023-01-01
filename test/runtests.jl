@@ -456,6 +456,108 @@ end
     test_modes([Mode.NestedLoop(), Mode.NestedLoopFast()], (measurements, measurements), not_same(); alloc=false)
 end
 
+@testitem "random" begin
+    using FlexiJoins: Mode
+    using Accessors
+    using IntervalSets
+    using Distances: Euclidean
+    using StaticArrays: SVector
+    using Random
+
+    function test_unique_setequal(a, b)
+        @test allunique(a)
+        @test allunique(b)
+        @test issetequal(a, b)
+    end
+
+    function test_modes(modes, args...; alloc=true, kwargs...)
+        base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
+        @testset for mode in [nothing; modes]
+            cur = joinindices(args...; kwargs..., mode)
+            test_unique_setequal(cur, base)
+        end
+    end
+
+    for i in 1:5
+        Random.seed!(i)
+        objects = [(obj=randstring('a':'z', 1), value=rand(1:10)) for _ in 1:rand(1:100)]
+        measurements = [(obj, time=t) for (obj, cnt) in [(randstring('a':'z', 1), rand(1:10)) for _ in 1:rand(1:20)] for t in cnt .* (2:(cnt+1))]
+        OM = (;O=objects, M=measurements)
+
+        @testset "$cond" for (cond, modes, kwargs) in [
+                (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
+                (by_key(x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()], (;)),
+                (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
+                (by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
+                (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
+                (by_pred(:obj, ==, x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()], (;)),
+                (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(:value, <=, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(:value, >, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(:value, >=, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(:value, ∈, x -> (x.time, x.time, x.time + 5, x.time + 10)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;alloc=false)),
+                (by_pred(:value, ∈, x -> x.time..(x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(:value, ∈, x -> Interval{:open,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(:value, ∈, x -> Interval{:closed,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(:value, ∈, x -> Interval{:open,:closed}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_pred(x -> (x.value-5)..(x.value+4), ⊇, x -> (x.time-1)..(x.time+2)), [Mode.NestedLoop(), Mode.Sort()], (;alloc=false)),
+                (by_pred(x -> (x.value-1)..(x.value+2), (!) ∘ isdisjoint, x -> (x.time-1)..(x.time+2)), [Mode.NestedLoop(), Mode.Tree()], (;alloc=false)),
+                (by_key(@optic(_.obj)) & by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+                (by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            ]
+            test_modes(modes, OM, cond; kwargs...)
+            test_modes(modes, (;O=objects[1:0], M=measurements), cond; kwargs...)
+            test_modes(modes, (;O=objects, M=measurements[1:0]), cond; kwargs...)
+            test_modes(modes, (;O=objects[1:0], M=measurements[1:0]), cond; kwargs...)
+            test_modes(modes, OM, cond; nonmatches=(O=keep,), kwargs...)
+            test_modes(modes, OM, cond; nonmatches=keep, kwargs...)
+
+            first_M = cond isa FlexiJoins.ByPred{typeof(∈)}  # the ∈ condition only supports a single "direction"
+
+            @testset "cache" begin
+                base = joinindices(OM, cond)
+                cache = join_cache()
+                @test isnothing(cache.prepared)
+                test_unique_setequal(joinindices(OM, cond; cache), base)
+                @test !isnothing(cache.prepared)
+                test_unique_setequal(joinindices(OM, cond; cache), base)
+                @test_throws AssertionError joinindices((;O=copy(objects), M=copy(measurements)), cond; cache)
+                @test_throws AssertionError joinindices(OM, by_key(:abc); cache)
+                @test_throws AssertionError joinindices(OM, cond; multi=first_M ? (O=first,) : (M=first,), cache)
+                @test_throws AssertionError joinindices(OM, cond; mode=Mode.NestedLoop(), cache)
+
+                if !first_M
+                    cache = join_cache()
+                    @test isnothing(cache.prepared)
+                    test_unique_setequal(joinindices(OM, cond; cache, loop_over_side=:O), base)
+                    @test !isnothing(cache.prepared)
+                    test_unique_setequal(joinindices((;O=copy(objects), M=measurements), cond; cache, loop_over_side=:O), base)
+                    @test_throws AssertionError joinindices((;O=objects, M=copy(measurements)), cond; cache, loop_over_side=:O)
+                    @test_throws AssertionError joinindices((;O=copy(objects), M=copy(measurements)), cond; cache, loop_over_side=:O)
+                    @test_throws r"AssertionError: cache\.params|No known mode supported" joinindices(OM, cond; cache, loop_over_side=:M)
+                end
+            end
+
+            test_modes(modes, OM, cond; multi=first_M ? (O=first,) : (M=first,), kwargs...)
+
+            # order within groups may differ, so tests fail:
+            # test_modes(modes, OM, cond; groupby=:O)
+            # test_modes(modes, OM, cond; groupby=:O, nonmatches=keep)
+            for mode in [nothing; modes]
+                # smoke test
+                joinindices(OM, cond; groupby=first_M ? :M : :O, mode)
+            end
+        end
+
+        # closest can be below or above: ambigous and results differ between modes
+        # test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], OM, by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
+        # test_modes([Mode.NestedLoop(), Mode.Sort()], OM, by_pred(:value, <, :time); multi=(M=closest,))
+        test_modes([Mode.NestedLoop(), Mode.Hash()], (measurements, measurements), by_key(:obj) & not_same(); alloc=false)
+        test_modes([Mode.NestedLoop(), Mode.NestedLoopFast()], (measurements, measurements), not_same(); alloc=false)
+    end
+end
+
 @testitem "weird values" begin
     using FlexiJoins: Mode
     using Distances: Euclidean
