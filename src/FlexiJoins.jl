@@ -21,9 +21,7 @@ include("ix_compute.jl")
 
 function flexijoin(datas, cond; kwargs...)
 	IXs = joinindices(datas, cond; kwargs...)
-	map(datas, StructArrays.components(IXs)) do A, I
-		myview(A, I)
-	end |> StructArray
+    myview(datas, IXs)
 end
 
 function joinindices(datas::NamedTuple{NS}, cond; kwargs...) where {NS}
