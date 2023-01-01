@@ -90,7 +90,8 @@ sort_byf(cond::ByPred{typeof(∋)}) = cond.Rf
 
 @inbounds function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
     arr = mapview(i -> cond.Rf(B[i]), perm)
-    _do_view(perm, searchsorted_in(arr, cond.Lf(a)))
+    # like view(perm, searchsorted_in(arr, cond.Lf(a))), but also works with non-array iterable indices
+    mapview(i -> perm[i], searchsorted_in(arr, cond.Lf(a)))
 end
 
 # Sort for subset queries

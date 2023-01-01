@@ -55,10 +55,6 @@ end
     f(a)
 end
 
-# "view" that works with array of indices (regular view) and with iterable of indices (iterator)
-_do_view(A, I::AbstractArray) = @view A[I]
-_do_view(A, I) = @p I |> Iterators.map(A[_])
-
 firstn_by!(A::AbstractVector, n=1; by) = view(partialsort!(A, 1:min(n, length(A)); by), 1:min(n, length(A)))
 
 # Base.eltype returns Any for mapped/flattened iterators
