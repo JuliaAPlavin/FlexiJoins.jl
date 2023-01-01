@@ -38,7 +38,7 @@ using Tables
 using DataPipes
 
 # ╔═╡ 9adcac42-ce99-4190-be6f-1dce934163c1
-using SplitApplyCombine
+import SplitApplyCombine as SAC
 
 # ╔═╡ bac459c1-82bb-44b7-87c9-d26344564af6
 using Distances
@@ -91,9 +91,9 @@ end
 times = map(grid(N=10 .^ (0:5), M=10 .^ (0:5), join=[:Flexi, :SAC, :DF])) do p
 	LR = generate_data(p.N, p.M)
 	timed = if p.join == :Flexi
-		autotimed(() -> @p flexijoin(LR, by_key(@o(_.name))) |> count(_.R.value > -10000))
+		autotimed(() -> @p innerjoin(LR, by_key(@o(_.name))) |> count(_.R.value > -10000))
 	elseif p.join == :SAC
-		autotimed(() -> @p innerjoin(_.name, _.name, (_1, _2), LR.L, LR.R) |> count(_[2].value > -10000))
+		autotimed(() -> @p SAC.innerjoin(_.name, _.name, (_1, _2), LR.L, LR.R) |> count(_[2].value > -10000))
 	elseif p.join == :DF
 		L = DataFrames.DataFrame(LR.L)
 		R = DataFrames.DataFrame(LR.R)
