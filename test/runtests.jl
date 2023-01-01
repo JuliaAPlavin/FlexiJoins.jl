@@ -101,7 +101,7 @@ end
 @testset "consistent" begin
     LR = (O=objects, M=measurements)
     
-    @test joinindices(LR, by_key((:obj,))) == joinindices(LR, by_key(:obj))
+    @test joinindices(LR, by_key(:obj)) == joinindices(LR, by_key(:obj))
     @test joinindices(LR, by_key((:obj, :obj))) == joinindices(LR, by_key(:obj))
     @test joinindices(LR, by_key((:obj, :obj), x -> (x.obj, x.obj))) == joinindices(LR, by_key(:obj))
 

@@ -56,14 +56,16 @@ supports_mode(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, datas) =
     Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}) <: Interval &&  Core.Compiler.return_type(cond.Rf, Tuple{valtype(datas[2])}) <: Interval
 
 
-# Hash implementation
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
-findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, ix_a, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), ix_a, a, Bdata, multi)
+# Hash implementation: delegates to by_key()
+# Only cond.Rf is evaluated in prepare_for_join, and only cond.Lf in findmatchix.
+# However, we always pass both for correct dispatch in ByKey: see ByIndex there.
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(cond.Lf, cond.Rf), multi)
+findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, ix_a, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, cond.Rf), ix_a, a, Bdata, multi)
 
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(cond.Lf, cond.Rf), multi)
 findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi) =
     @p cond.Lf(a) |>
-        Iterators.map(findmatchix(mode, by_key(identity, nothing), nothing, _, Bdata, multi)) |>
+        Iterators.map(findmatchix(mode, by_key(identity, cond.Rf), nothing, _, Bdata, multi)) |>
         Iterators.flatten() |>
         unique |>
         matchix_postprocess_multi(__, multi)
@@ -106,10 +108,10 @@ end
 
 # Tree for overlaps
 prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) =
-    (X, NN.KDTree(map(as_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
+    (X, NN.KDTree(map(wrap_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
 function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree)::Tuple, multi::typeof(identity))
     leftint = cond.Lf(a)
-    @p inrect(tree, [-Inf, leftendpoint(leftint)], [rightendpoint(leftint), Inf]) |>
+    @p inrect(tree, wrap_vector((-Inf, leftendpoint(leftint))), wrap_vector((rightendpoint(leftint), Inf))) |>
         filter!(cond.pred(leftint, cond.Rf(B[_])))
 end
 

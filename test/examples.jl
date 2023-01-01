@@ -202,7 +202,7 @@ leftjoin((O=objects, M=measurements), by_key(:name))
 
 # ╔═╡ dbd13148-ac1a-41d0-aded-99b5cf7c66c1
 md"""
-**Grouping by the object** (`:O`):
+**Grouping by one join side**, `objects` (`:O`) in this case:
 """
 
 # ╔═╡ c69e7cca-c038-4170-b2c6-c1dc57659532
@@ -396,18 +396,18 @@ md"""
 md"""
 In addition to regular arrays, `FlexiJoins.jl` supports joining a wide range of other collection types.
 
-Datasets that can be indexed and `view`ed as regular arrays are used as-is. The interface is flexible enough to perform joins without any conversion.\
-Tables that don't fit this requirement have to be converted first. Currently, `FlexiJoins` perform this conversion automatically for `DataFrames.jl` dataframes.
+Datasets that can be indexed as regular arrays are used as-is. The interface is flexible enough to perform joins without any conversion.\
+Tables that don't fit this requirement have to be converted first. Currently, `FlexiJoins` perform this conversion automatically for `DataFrames.jl`.
 """
 
 # ╔═╡ 34a220c3-1937-4f57-b386-6eaeb9085e7c
 md"""
-A non-extensive list of supported type examples:
+A non-exhaustive list of supported type examples:
 """
 
 # ╔═╡ 41ea9de2-29c6-4ce0-a6f7-820234576dc6
 md"""
-### StructArrays
+#### StructArrays
 """
 
 # ╔═╡ 94e2c182-e401-4042-a80d-cecb3f4dce4d
@@ -423,7 +423,7 @@ innerjoin((O=objs_SA, M=measurements), by_key(:name))
 
 # ╔═╡ 0675bb7d-94fa-46a1-a580-3357c9be7041
 md"""
-### TypedTables
+#### TypedTables
 """
 
 # ╔═╡ 87204bf0-f62d-41a9-9b2f-fff5f0f7029f
@@ -434,7 +434,7 @@ innerjoin((O=objs_TT, M=measurements), by_key(:name))
 
 # ╔═╡ 280d4c51-27b9-4814-a65d-4378c13955fa
 md"""
-### Dictionaries
+#### Dictionaries
 """
 
 # ╔═╡ 186af722-b435-47d1-858f-252733af7203
@@ -445,7 +445,14 @@ innerjoin((O=objs_SA, M=meas_dict), by_key(:name))
 
 # ╔═╡ e3a7a50d-8771-4ba0-b488-fb2a985005cc
 md"""
-### DataFrames
+#### DataFrames
+"""
+
+# ╔═╡ 07707bef-856e-4052-994e-0c4f69f4de5f
+md"""
+DataFrames don't support the common Julia collection interface, and are automatically converted by `FlexiJoins`. \
+This conversion is completely transparent to the user, who passes DataFrames and gets a DataFrame as the join results. \
+Moreover, it shouldn't entail an extra data copy: DataFrame columns are utilized as-is.
 """
 
 # ╔═╡ 4ccc1394-328e-4370-9095-10fdfbf8f48f
@@ -1128,6 +1135,7 @@ version = "17.4.0+0"
 # ╠═186af722-b435-47d1-858f-252733af7203
 # ╠═1c858fa5-d6b8-477f-bea9-276efc71050f
 # ╟─e3a7a50d-8771-4ba0-b488-fb2a985005cc
+# ╟─07707bef-856e-4052-994e-0c4f69f4de5f
 # ╠═4ccc1394-328e-4370-9095-10fdfbf8f48f
 # ╠═e3d82dd1-8471-4ea3-9086-20e379c32d04
 # ╠═26c60c52-8356-4ca2-9c0c-7feac572f66c
