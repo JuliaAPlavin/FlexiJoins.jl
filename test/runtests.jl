@@ -231,32 +231,32 @@ function test_modes(modes, args...; alloc=true, kwargs...)
 end
 
 @testset "join modes" begin
-    @testset for (cond, modes) in [
-            (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
-            (by_key(x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()]),
-            (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()]),
-            (by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()]),
-            (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
-            (by_pred(:obj, ==, x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()]),
-            (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_pred(:value, <=, :time), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_pred(:value, >, :time), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_pred(:value, >=, :time), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_pred(:value, ∈, x -> (x.time, x.time + 5, x.time + 10)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
-            (by_pred(:value, ∈, x -> x.time..(x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_pred(:value, ∈, x -> Interval{:open,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_pred(:value, ∈, x -> Interval{:closed,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_pred(:value, ∈, x -> Interval{:open,:closed}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_key(@optic(_.obj)) & by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
-            (by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort()]),
+    @testset for (cond, modes, kwargs) in [
+            (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
+            (by_key(x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()], (;)),
+            (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
+            (by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
+            (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
+            (by_pred(:obj, ==, x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()], (;)),
+            (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, <=, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, >, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, >=, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, ∈, x -> (x.time, x.time, x.time + 5, x.time + 10)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;alloc=false)),
+            (by_pred(:value, ∈, x -> x.time..(x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, ∈, x -> Interval{:open,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, ∈, x -> Interval{:closed,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(:value, ∈, x -> Interval{:open,:closed}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_key(@optic(_.obj)) & by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort()], (;)),
         ]
-        test_modes(modes, (;O=objects, M=measurements), cond)
-        test_modes(modes, (;O=objects[1:0], M=measurements), cond)
-        test_modes(modes, (;O=objects, M=measurements[1:0]), cond)
-        test_modes(modes, (;O=objects[1:0], M=measurements[1:0]), cond)
-        test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,))
-        test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=keep)
+        test_modes(modes, (;O=objects, M=measurements), cond; kwargs...)
+        test_modes(modes, (;O=objects[1:0], M=measurements), cond; kwargs...)
+        test_modes(modes, (;O=objects, M=measurements[1:0]), cond; kwargs...)
+        test_modes(modes, (;O=objects[1:0], M=measurements[1:0]), cond; kwargs...)
+        test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,), kwargs...)
+        test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=keep, kwargs...)
 
         first_M = cond isa FlexiJoins.ByPred{typeof(∈)}  # the ∈ condition only supports a single "direction"
 
@@ -272,10 +272,15 @@ end
         @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,), cache)
         @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; mode=Mode.NestedLoop(), cache)
 
-        test_modes(modes, (;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,))
+        test_modes(modes, (;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,), kwargs...)
+
         # order within groups may differ, so tests fail:
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O)
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O, nonmatches=keep)
+        for mode in [nothing; modes]
+            # smoke test
+            joinindices((;O=objects, M=measurements), cond; groupby=first_M ? :M : :O, mode)
+        end
     end
     test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
     test_modes([Mode.NestedLoop(), Mode.Sort()], (;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,))
