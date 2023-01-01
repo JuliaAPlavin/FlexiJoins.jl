@@ -8,6 +8,7 @@ using Indexing
 using SplitApplyCombine: mapview
 using IntervalSets
 import NearestNeighbors as NN
+import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 
 
 export
