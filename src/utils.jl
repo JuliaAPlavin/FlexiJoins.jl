@@ -122,3 +122,26 @@ struct NoConvert{T}
     value::T
 end
 StructArrays.maybe_convert_elt(::Type{T}, vals::NoConvert) where {T} = vals.value
+
+
+# until https://github.com/KristofferC/NearestNeighbors.jl/pull/150
+using NearestNeighbors: KDTree, isleaf, get_leaf_range, getleft, getright
+
+function inrect(tree, a, b)
+    idx = Int[]
+    inrange_rect!(tree, a, b, idx)
+    return idx
+end
+
+function inrange_rect!(tree::KDTree, a, b, idxs, index=1)
+    if isleaf(tree.tree_data.n_internal_nodes, index)
+        for z in get_leaf_range(tree.tree_data, index)
+            idx = tree.reordered ? z : tree.indices[z]
+            all(a .<= tree.data[idx] .<= b) && push!(idxs, tree.indices[z])
+        end
+    else
+        (; split_val, split_dim) = tree.nodes[index]
+        a[split_dim] <= split_val && inrange_rect!(tree, a, b, idxs,  getleft(index))
+        b[split_dim] >= split_val && inrange_rect!(tree, a, b, idxs, getright(index))
+    end
+end

@@ -12,6 +12,11 @@ swap_sides(::typeof(<=)) = >=
 swap_sides(::typeof(==)) = ==
 swap_sides(::typeof(>=)) = <=
 swap_sides(::typeof(>)) = <
+swap_sides(::typeof(⊆)) = ⊇
+swap_sides(::typeof(⊊)) = ⊋
+swap_sides(::typeof(⊋)) = ⊊
+swap_sides(::typeof(⊇)) = ⊆
+swap_sides(f::ComposedFunction{typeof(!), typeof(isdisjoint)}) = f
 
 """
     by_pred(f_L, pred, f_R)
@@ -28,18 +33,30 @@ by_pred(:time, ∈, :time_range)
 by_pred(Lf, pred, Rf) = ByPred(normalize_keyfunc(Lf), normalize_keyfunc(Rf), pred)
 
 
+# always supports nested loop
 supports_mode(::Mode.NestedLoop, ::ByPred, datas) = true
 is_match(by::ByPred, a, b) = by.pred(by.Lf(a), by.Rf(b))
 findmatchix(mode::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >))...}}, ix_a, a, B, multi::Closest) =
     @p findmatchix(mode, cond, ix_a, a, B, identity) |>
         firstn_by!(by=i -> abs(cond.Lf(a) - cond.Rf(B[i])))
 
+# support Hash for equality and subset
 supports_mode(::Mode.Hash, ::ByPred{typeof(==)}, datas) = true
 supports_mode(::Mode.Hash, cond::ByPred{typeof(∋)}, datas) = Base.isiterable(Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}))
+
+# order predicates: support Sort
 supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
 supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
 
+# intervals set-operations: subset support Sort
+supports_mode(::Mode.Sort, cond::ByPred{<:Union{typeof.((⊋, ⊇))...}}, datas) =
+    Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}) <: Interval &&  Core.Compiler.return_type(cond.Rf, Tuple{valtype(datas[2])}) <: Interval
+# overlap supports Tree
+supports_mode(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, datas) =
+    Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}) <: Interval &&  Core.Compiler.return_type(cond.Rf, Tuple{valtype(datas[2])}) <: Interval
 
+
+# Hash implementation
 prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
 findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, ix_a, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), ix_a, a, Bdata, multi)
 
@@ -52,7 +69,8 @@ findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi) =
         matchix_postprocess_multi(__, multi)
 
 
-sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
+# Sort implementation for comparisons
+sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >))...}}) = cond.Rf
 
 @inbounds searchsorted_matchix(cond::ByPred{ typeof(<)}, a, B, perm) = @view perm[searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) + 1:end]
 @inbounds searchsorted_matchix(cond::ByPred{typeof(<=)}, a, B, perm) = @view perm[searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)):end]
@@ -63,11 +81,40 @@ sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
 @inbounds searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(<), typeof(<=)}}, a, B, perm) = @view searchsorted_matchix(cond, a, B, perm)[begin:min(begin, end)]
 @inbounds searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(>), typeof(>=)}}, a, B, perm) = @view searchsorted_matchix(cond, a, B, perm)[max(begin, end):end]
 
+
+# intervals:
+# Sort for member queries
+sort_byf(cond::ByPred{typeof(∋)}) = cond.Rf
+
 @inbounds function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
     arr = mapview(i -> cond.Rf(B[i]), perm)
     _do_view(perm, searchsorted_in(arr, cond.Lf(a)))
 end
 
+# Sort for subset queries
+sort_byf(cond::ByPred{<:Union{typeof.((⊋, ⊇))...}}) = leftendpoint ∘ cond.Rf
+
+@inbounds function searchsorted_matchix(cond::ByPred{<:Union{typeof.((⊇, ⊋))...}}, a, B, perm)
+    leftint = cond.Lf(a)
+    @p begin
+        mapview(i -> leftendpoint(cond.Rf(B[i])), perm)
+        searchsorted_in(__, leftint)
+        @view perm[__]
+        filter(cond.pred(leftint, cond.Rf(B[_])))
+    end
+end
+
+# Tree for overlaps
+prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) =
+    (X, NN.KDTree(map(as_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
+function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree)::Tuple, multi::typeof(identity))
+    leftint = cond.Lf(a)
+    @p inrect(tree, [-Inf, leftendpoint(leftint)], [rightendpoint(leftint), Inf]) |>
+        filter!(cond.pred(leftint, cond.Rf(B[_])))
+end
+
+
+# helper functions
 searchsorted_in(A, X) = @p X |> Iterators.map(searchsorted(A, _)) |> Iterators.flatten() |> unique
 
 if isdefined(IntervalSets, :searchsorted_interval)

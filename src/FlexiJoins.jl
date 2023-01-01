@@ -52,6 +52,14 @@ function __init__()
             DataFrame(x isa base_eltype ? x : empty_row for x in xs)
         end
     end
+
+    @require StaticArrays = "90137ffa-7385-5640-81b9-e52037218182" begin
+        using .StaticArrays
+
+        as_vector(t::Tuple) = SVector(t)
+    end
 end
+
+as_vector(t::Tuple) = error("Load StaticArrays")
 
 end

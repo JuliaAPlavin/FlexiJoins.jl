@@ -130,6 +130,14 @@ end
         rightjoin(LR, by_distance(:value, :time, Euclidean(), <=(3))),
         rightjoin(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
     )
+    test_unique_setequal(
+        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ⊇, x -> x.time..x.time)),
+    )
+    test_unique_setequal(
+        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+        joinindices(LR, by_pred(x -> (x.value-1)..(x.value+2), (!) ∘ isdisjoint, x -> (x.time-1)..(x.time+2))),
+    )
 end
 
 @testset "explicit side" begin
@@ -325,6 +333,8 @@ end
             (by_pred(:value, ∈, x -> Interval{:open,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
             (by_pred(:value, ∈, x -> Interval{:closed,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
             (by_pred(:value, ∈, x -> Interval{:open,:closed}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()], (;)),
+            (by_pred(x -> (x.value-5)..(x.value+4), ⊇, x -> (x.time-1)..(x.time+2)), [Mode.NestedLoop(), Mode.Sort()], (;alloc=false)),
+            (by_pred(x -> (x.value-1)..(x.value+2), (!) ∘ isdisjoint, x -> (x.time-1)..(x.time+2)), [Mode.NestedLoop(), Mode.Tree()], (;alloc=false)),
             (by_key(@optic(_.obj)) & by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()], (;)),
             (by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort()], (;)),
         ]
