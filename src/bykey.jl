@@ -6,7 +6,7 @@ swap_sides(c::ByKey) = ByKey(swap_sides(c.keyfuncs))
 
 """
     by_key(f)
-    by_key((f_L, f_R))
+    by_key(f_L, f_R)
 
 Join condition with `left`-`right` matches defined by `f_L(left) == f_R(right)`.
 
@@ -17,33 +17,32 @@ by_key(:name)
 by_key(:name, x -> first(x.names))
 ```
 """
-by_key(keyfunc) = ByKey(keyfunc)
+by_key(keyfunc) = ByKey((normalize_keyfunc(keyfunc),))
+by_key(f_L, f_R) = ByKey(normalize_keyfunc.((f_L, f_R)))
+by_key(; keyfuncs...) = ByKey(map(normalize_keyfunc, values(keyfuncs)))
 
-normalize_arg(cond::ByKey{<:NamedTuple{NSk}}, datas::NamedTuple{NS}) where {NSk, NS} = (@assert NSk == NS; ByKey(map(normalize_keyfunc, cond.keyfuncs) |> values))
-normalize_arg(cond::ByKey, datas::Union{Tuple, NamedTuple}) = ByKey(map(Returns(normalize_keyfunc(cond.keyfuncs)), datas) |> values)
-normalize_keyfunc(x::Tuple) = map(x -> only(normalize_keyfunc(x)), x)
-normalize_keyfunc(x) = (x,)
-normalize_keyfunc(x::Symbol) = (Accessors.PropertyLens{x}(),)
-get_actual_keyfunc(x::Tuple) = arg -> map(el -> el(arg), x)
+normalize_arg(cond::ByKey{<:NamedTuple{NSk}}, datas::NamedTuple{NS}) where {NSk, NS} = (@assert NSk == NS; ByKey(cond.keyfuncs |> values))
+normalize_arg(cond::ByKey{<:Tuple{Any}}, datas::Union{Tuple, NamedTuple}) = ByKey(ntuple(Returns(only(cond.keyfuncs)), length(datas)))
+normalize_arg(cond::ByKey{<:Tuple}, datas::Union{Tuple, NamedTuple}) = (@assert length(cond.keyfuncs) == length(datas); ByKey(cond.keyfuncs))
 
 
 supports_mode(::Mode.NestedLoop, ::ByKey, datas) = true
-is_match(by::ByKey, a, b) = get_actual_keyfunc(first(by.keyfuncs))(a) == get_actual_keyfunc(last(by.keyfuncs))(b)
+is_match(by::ByKey, a, b) = first(by.keyfuncs)(a) == last(by.keyfuncs)(b)
 
 
 supports_mode(::Mode.SortChain, ::ByKey, datas) = true
-sort_byf(cond::ByKey) = get_actual_keyfunc(last(cond.keyfuncs))
+sort_byf(cond::ByKey) = last(cond.keyfuncs)
 @inbounds searchsorted_matchix(cond::ByKey, a, B, perm) =
     @view perm[searchsorted(
-        mapview(i -> get_actual_keyfunc(last(cond.keyfuncs))(B[i]), perm),
-        get_actual_keyfunc(first(cond.keyfuncs))(a)
+        mapview(i -> last(cond.keyfuncs)(B[i]), perm),
+        first(cond.keyfuncs)(a)
     )]
 
 
 supports_mode(::Mode.Hash, ::ByKey, datas) = true
 
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
-    keyfunc = get_actual_keyfunc(last(cond.keyfuncs))
+    keyfunc = last(cond.keyfuncs)
 
     ngroups = 0
     groups = similar(X, Int)
@@ -73,7 +72,7 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
 end
 
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first), typeof(last)})
-    keyfunc = get_actual_keyfunc(last(cond.keyfuncs))
+    keyfunc = last(cond.keyfuncs)
     dct = Dict{
         Core.Compiler.return_type(keyfunc, Tuple{valtype(X)}),
         keytype(X)
@@ -86,20 +85,20 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first
 end
 
 @inbounds function findmatchix(::Mode.Hash, cond::ByKey, a, (dct, starts, rperm)::Tuple, multi::typeof(identity))
-    group_id = get(dct, get_actual_keyfunc(first(cond.keyfuncs))(a), -1)
+    group_id = get(dct, first(cond.keyfuncs)(a), -1)
     group_id == -1 ?
         @view(rperm[1:1:0]) :
         @view(rperm[starts[group_id + 1]:-1:1 + starts[group_id]])
 end
 # two methods with the same body, for resolver disambiguation
 findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(first)) = let
-    k = get_actual_keyfunc(first(cond.keyfuncs))(a)
+    k = first(cond.keyfuncs)(a)
     b = get(B, k, nothing)
     T = valtype(B)
     isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
 end
 findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(last)) = let
-    k = get_actual_keyfunc(first(cond.keyfuncs))(a)
+    k = first(cond.keyfuncs)(a)
     b = get(B, k, nothing)
     T = valtype(B)
     isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)

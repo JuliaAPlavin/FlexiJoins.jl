@@ -25,7 +25,7 @@ by_pred(:start_time, <, :time)
 by_pred(:time, ∈, :time_range)
 ```
 """
-by_pred(Lf, pred, Rf) = ByPred(Lf, Rf, pred)
+by_pred(Lf, pred, Rf) = ByPred(normalize_keyfunc(Lf), normalize_keyfunc(Rf), pred)
 
 normalize_arg(cond::ByPred, datas) = (@assert length(datas) == 2; cond)
 
@@ -42,13 +42,13 @@ supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
 supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
 
 
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, ByKey((nothing, (cond.Rf,))), multi)
-findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, a, Bdata, multi) = findmatchix(mode, ByKey(((cond.Lf,), nothing)), a, Bdata, multi)
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(nothing, (cond.Rf,)), multi)
+findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, a, Bdata, multi) = findmatchix(mode, by_key((cond.Lf,), nothing), a, Bdata, multi)
 
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, ByKey((nothing, (cond.Rf,))), multi)
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, (cond.Rf,)), multi)
 findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, a, Bdata, multi::typeof(identity)) =
     mapreduce(vcat, cond.Lf(a)) do aa
-        findmatchix(mode, ByKey(((identity,), nothing)), aa, Bdata, multi)
+        findmatchix(mode, by_key((identity,), nothing), aa, Bdata, multi)
     end
 
 
