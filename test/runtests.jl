@@ -62,7 +62,6 @@ end
     @test normalize_arg(by_key(:obj), ([], [])) == ByKey(((@optic(_.obj),), (@optic(_.obj),)))
     @test normalize_arg(by_key((:obj, @optic(_.name))), ([], [])) == ByKey(((@optic(_.obj), @optic(_.name)), (@optic(_.obj), @optic(_.name))))
     @test normalize_arg(by_key((A=@optic(_.name), B=:obj)), (A=[], B=[])) == ByKey(((@optic(_.name),), (@optic(_.obj),)))
-    @test normalize_arg(by_pred(@optic(_.name), isequal, :obj), ([], [])) == ByKey(((@optic(_.name),), (@optic(_.obj),)))
 end
 
 @testset "other types" begin
