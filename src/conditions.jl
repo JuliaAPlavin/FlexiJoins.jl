@@ -39,6 +39,7 @@ normalize_keyfunc(x) = x
 normalize_keyfunc(x::Symbol) = Accessors.PropertyLens{x}()
 
 
+findmatchix(mode, cond, ix_a, a, Bdata, multi) = findmatchix(mode, cond, a, Bdata, multi)
 findmatchix(mode::Union{Mode.NestedLoop, Mode.Sort, Mode.Tree}, cond::JoinCondition, ix_a, a, B_prep, multi::Union{typeof(first), typeof(last)}) = matchix_postprocess_multi(findmatchix(mode, cond, ix_a, a, B_prep, identity), multi)
 
 
