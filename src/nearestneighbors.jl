@@ -10,8 +10,7 @@ end
 
 # by predicate:
 prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) =
-    # (X, NN.KDTree(map(wrap_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))  # XXX: sometimes map() returns a Vector{Any}
-    (X, NN.KDTree(map(x -> wrap_vector(endpoints(cond.Rf(x))), X) |> wrap_matrix, NN.Euclidean()))
+    (X, NN.KDTree(map(wrap_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
 function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree)::Tuple, multi::typeof(identity))
     leftint = cond.Lf(a)
     @p inrect(tree, wrap_vector((-Inf, leftendpoint(leftint))), wrap_vector((rightendpoint(leftint), Inf))) |>
