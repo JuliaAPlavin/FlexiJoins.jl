@@ -1,29 +1,23 @@
-using FlexiJoins
-using FlexiJoins: normalize_arg, ByKey, Mode
-using StructArrays, TypedTables
-using StaticArrays
-using OffsetArrays
-using Dictionaries: dictionary
-using DataFrames
-using IntervalSets
-using Distances
-using DataPipes
-using Accessors
-using Test
+using TestItems
+using TestItemRunner
+@run_package_tests
 
 
-function test_unique_setequal(a, b)
-    @test allunique(a)
-    @test allunique(b)
-    @test issetequal(a, b)
-end
+@testitem "basic" begin
+    using Accessors
+    using IntervalSets
+    using Distances: Euclidean
 
+    function test_unique_setequal(a, b)
+        @test allunique(a)
+        @test allunique(b)
+        @test issetequal(a, b)
+    end
 
-objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
-measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
-OM = (;O=objects, M=measurements)
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+    OM = (;O=objects, M=measurements)
 
-@testset "basic" begin
     @test flexijoin(OM, by_key(@optic(_.obj))) ==
         [(O=(obj="A", value=2), M=(obj="A", time=8)), (O=(obj="A", value=2), M=(obj="A", time=12)), (O=(obj="A", value=2), M=(obj="A", time=16)), (O=(obj="A", value=2), M=(obj="A", time=20)), (O=(obj="B", value=-5), M=(obj="B", time=2))]
     @test joinindices(OM, by_key(@optic(_.obj))) ==
@@ -85,7 +79,13 @@ OM = (;O=objects, M=measurements)
     @test_throws ErrorException joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), groupby=:M)
 end
 
-@testset "not_same" begin
+@testitem "not_same" begin
+    using DataPipes
+
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+    OM = (;O=objects, M=measurements)
+
     @test_throws Exception joinindices((M1=copy(measurements), M2=measurements), by_key(:obj) & not_same())
     LR = (M1=measurements, M2=measurements)
     @test joinindices(LR, not_same()) ==
@@ -98,50 +98,72 @@ end
         @p joinindices(LR, by_key(:obj)) |> filter(_.M1 < _.M2)
 end
 
-@testset "consistent" begin
-    LR = (O=objects, M=measurements)
-    
-    @test joinindices(LR, by_key(:obj)) == joinindices(LR, by_key(:obj))
-    @test joinindices(LR, by_key((:obj, :obj))) == joinindices(LR, by_key(:obj))
-    @test joinindices(LR, by_key((:obj, :obj), x -> (x.obj, x.obj))) == joinindices(LR, by_key(:obj))
+@testitem "consistent" begin
+    using IntervalSets
+    using Distances: Euclidean
+    using StaticArrays: SVector
 
-    @test joinindices(LR, by_pred(:obj, ==, :obj)) == joinindices(LR, by_key(:obj))
-    @test joinindices(LR, by_pred(x -> x.obj == "B" ? nothing : x.obj, ==, :obj)) == joinindices(LR, by_key(x -> x.obj == "B" ? nothing : x.obj, :obj))
-    @test joinindices(LR, by_pred(:obj, ∈, x -> (x.obj,))) == joinindices(LR, by_key(:obj))
-    @test joinindices(LR, by_pred(:obj, ∈, x -> (nothing, x.obj))) == joinindices(LR, by_key(:obj))
-    @test joinindices(LR, by_pred(:obj, ∈, x -> (x.obj, nothing))) == joinindices(LR, by_key(:obj))
+    function test_unique_setequal(a, b)
+        @test allunique(a)
+        @test allunique(b)
+        @test issetequal(a, b)
+    end
+
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+    OM = (;O=objects, M=measurements)
+    
+    @test joinindices(OM, by_key(:obj)) == joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_key((:obj, :obj))) == joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_key((:obj, :obj), x -> (x.obj, x.obj))) == joinindices(OM, by_key(:obj))
+
+    @test joinindices(OM, by_pred(:obj, ==, :obj)) == joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_pred(x -> x.obj == "B" ? nothing : x.obj, ==, :obj)) == joinindices(OM, by_key(x -> x.obj == "B" ? nothing : x.obj, :obj))
+    @test joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,))) == joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_pred(:obj, ∈, x -> (nothing, x.obj))) == joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_pred(:obj, ∈, x -> (x.obj, nothing))) == joinindices(OM, by_key(:obj))
 
     test_unique_setequal(
-        joinindices(LR, by_distance(:value, :time, Euclidean(), <=(3))),
-        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+        joinindices(OM, by_distance(:value, :time, Euclidean(), <=(3))),
+        joinindices(OM, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
     )
     test_unique_setequal(
-        joinindices(LR, by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3))),
-        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+        joinindices(OM, by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3))),
+        joinindices(OM, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
     )
     test_unique_setequal(
         joinindices((;M=measurements, O=objects), by_distance(:time, :value, Euclidean(), <=(3))),
         joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value-3)..(x.value+3))),
     )
     test_unique_setequal(
-        joinindices(LR, by_distance(:value, :time, Euclidean(), <=(1))),
-        joinindices(LR, by_pred(x -> (x.value, x.value+1, x.value-1), ∋, :time)),
+        joinindices(OM, by_distance(:value, :time, Euclidean(), <=(1))),
+        joinindices(OM, by_pred(x -> (x.value, x.value+1, x.value-1), ∋, :time)),
     )
     test_unique_setequal(
-        rightjoin(LR, by_distance(:value, :time, Euclidean(), <=(3))),
-        rightjoin(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+        rightjoin(OM, by_distance(:value, :time, Euclidean(), <=(3))),
+        rightjoin(OM, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
     )
     test_unique_setequal(
-        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
-        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ⊇, x -> x.time..x.time)),
+        joinindices(OM, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+        joinindices(OM, by_pred(x -> (x.value-3)..(x.value+3), ⊇, x -> x.time..x.time)),
     )
     test_unique_setequal(
-        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
-        joinindices(LR, by_pred(x -> (x.value-1)..(x.value+2), (!) ∘ isdisjoint, x -> (x.time-1)..(x.time+2))),
+        joinindices(OM, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+        joinindices(OM, by_pred(x -> (x.value-1)..(x.value+2), (!) ∘ isdisjoint, x -> (x.time-1)..(x.time+2))),
     )
 end
 
-@testset "explicit side" begin
+@testitem "explicit side" begin
+    function test_unique_setequal(a, b)
+        @test allunique(a)
+        @test allunique(b)
+        @test issetequal(a, b)
+    end
+
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+    OM = (;O=objects, M=measurements)
+
     @test joinindices(OM, by_key(:obj); loop_over_side=1) == joinindices(OM, by_key(:obj))
     @test joinindices(OM, by_key(:obj); loop_over_side=2) == joinindices(OM, by_key(:obj))
     @test joinindices(OM, by_key(:obj); loop_over_side=1, nonmatches=keep) != joinindices(OM, by_key(:obj); loop_over_side=2, nonmatches=keep)
@@ -154,8 +176,14 @@ end
     @test_throws ErrorException joinindices(OM, by_pred(:obj, ∈, x -> (x.obj,)); loop_over_side=:O)
 end
 
-@testset "unnested" begin
-    let
+@testitem "unnested" begin
+    using StructArrays
+
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+    OM = (;O=objects, M=measurements)
+
+    @testset begin
         J1 = innerjoin((O=objects, M1=measurements), by_key(:obj))
 
         J2 = innerjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
@@ -177,7 +205,7 @@ end
         @test J2.M2 == J3.M2
     end
 
-    let
+    @testset begin
         J1 = innerjoin((O=objects, M1=measurements), by_key(:obj); groupby=:O)
         J2 = innerjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
         J3 = innerjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
@@ -187,7 +215,13 @@ end
     end
 end
 
-@testset "types" begin
+@testitem "types" begin
+    using StructArrays
+
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+    OM = (;O=objects, M=measurements)
+
     @testset "container" begin
         @testset "basic" begin
             J = innerjoin(OM, by_key(:obj))
@@ -273,7 +307,11 @@ end
     end
 end
 
-@testset "cardinality" begin
+@testitem "cardinality" begin
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+    OM = (;O=objects, M=measurements)
+
     @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=1, M=1))
     @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=*, M=0))
     @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=0, M=*))
@@ -296,32 +334,51 @@ end
     @test_throws AssertionError joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 2:100))
 end
 
-@testset "show" begin
+@testitem "show" begin
+    using Accessors
+    using Distances: Euclidean
+
     @test string(by_key(@optic(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3)) & not_same()) ==
-        "by_key((@optic _.a[12]) == (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0) & not_same(order_matters=true)"
+        "by_key((@optic _.a[12]) == (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Distances.Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0) & not_same(order_matters=true)"
 end
 
-function test_modes(modes, args...; alloc=true, kwargs...)
-    base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
-    @testset for mode in [nothing; modes]
-        cur = joinindices(args...; kwargs..., mode)
-        test_unique_setequal(cur, base)
+@testitem "join modes" begin
+    using FlexiJoins: Mode
+    using Accessors
+    using IntervalSets
+    using Distances: Euclidean
+    using StaticArrays: SVector
 
-        if alloc && mode != Mode.NestedLoop() && all(!isempty, args[1])
-            LR = map(X -> repeat(X, 200), args[1])
-            cond = args[2]
-            joinindices(LR, Base.tail(args)...; kwargs..., mode)
-            timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
-            if cond isa FlexiJoins.ByDistance
-                @test_broken Base.gc_alloc_count(timed.gcstats) < 150
-            else
-                @test Base.gc_alloc_count(timed.gcstats) < 150
+    function test_unique_setequal(a, b)
+        @test allunique(a)
+        @test allunique(b)
+        @test issetequal(a, b)
+    end
+
+    function test_modes(modes, args...; alloc=true, kwargs...)
+        base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
+        @testset for mode in [nothing; modes]
+            cur = joinindices(args...; kwargs..., mode)
+            test_unique_setequal(cur, base)
+
+            if alloc && mode != Mode.NestedLoop() && all(!isempty, args[1])
+                LR = map(X -> repeat(X, 200), args[1])
+                cond = args[2]
+                joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                if cond isa FlexiJoins.ByDistance
+                    @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+                else
+                    @test Base.gc_alloc_count(timed.gcstats) < 150
+                end
             end
         end
     end
-end
 
-@testset "join modes" begin
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+    OM = (;O=objects, M=measurements)
+
     @testset "$cond" for (cond, modes, kwargs) in [
             (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
             (by_key(x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()], (;)),
@@ -387,13 +444,17 @@ end
             joinindices(OM, cond; groupby=first_M ? :M : :O, mode)
         end
     end
+
     test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], OM, by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
     test_modes([Mode.NestedLoop(), Mode.Sort()], OM, by_pred(:value, <, :time); multi=(M=closest,))
     test_modes([Mode.NestedLoop(), Mode.Hash()], (measurements, measurements), by_key(:obj) & not_same(); alloc=false)
     test_modes([Mode.NestedLoop(), Mode.NestedLoopFast()], (measurements, measurements), not_same(); alloc=false)
 end
 
-@testset "normalize_arg" begin
+@testitem "normalize_arg" begin
+    using FlexiJoins: normalize_arg, ByKey
+    using Accessors
+
     @test normalize_arg(by_key(@optic(_.obj)), (A=[], B=[])) == ByKey((@optic(_.obj), @optic(_.obj)))
     @test normalize_arg(by_key(:obj), (A=[], B=[])) == ByKey((@optic(_.obj), @optic(_.obj)))
     @test normalize_arg(by_key(:obj), ([], [])) == ByKey((@optic(_.obj), @optic(_.obj)))
@@ -401,8 +462,19 @@ end
     @test normalize_arg(by_key(A=@optic(_.name), B=:obj), (A=[], B=[])) == ByKey((@optic(_.name), @optic(_.obj)))
 end
 
-@testset "other types" begin
+@testitem "other dataset types" begin
+    using FlexiJoins: Mode
+    using DataPipes
+    using StructArrays
+    using TypedTables: Table
+    using OffsetArrays
+    using Dictionaries
+    using DataFrames
+
+    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
     expected = [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+
     @testset for mode in [nothing, Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]
         @testset "tuple" begin
             @test flexijoin((objects, measurements), by_key(:obj); mode) == expected
@@ -447,9 +519,11 @@ end
     end
 end
 
+@testitem "_" begin
+    import CompatHelperLocal as CHL
+    CHL.@check()
 
-import CompatHelperLocal as CHL
-CHL.@check()
-
-import Aqua
-Aqua.test_all(FlexiJoins; ambiguities=false)
+    import Aqua
+    Aqua.test_all(FlexiJoins; ambiguities=false)
+    Aqua.test_ambiguities(FlexiJoins)
+end
