@@ -42,13 +42,13 @@ supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
 supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
 
 
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(nothing, (cond.Rf,)), multi)
-findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, a, Bdata, multi) = findmatchix(mode, by_key((cond.Lf,), nothing), a, Bdata, multi)
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
+findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), a, Bdata, multi)
 
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, (cond.Rf,)), multi)
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
 function findmatchix_wix!(IX_2_prealloc, mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi::typeof(identity))
     for aa in cond.Lf(a)
-        append!(IX_2_prealloc, findmatchix(mode, by_key((identity,), nothing), aa, Bdata, multi))
+        append!(IX_2_prealloc, findmatchix(mode, by_key(identity, nothing), aa, Bdata, multi))
     end
     IX_2_prealloc
 end
