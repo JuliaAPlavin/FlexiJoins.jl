@@ -7,6 +7,7 @@ using DataPipes
 using Indexing
 using SplitApplyCombine: mapview
 using IntervalSets
+using MicroCollections: vec1
 import NearestNeighbors as NN
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 
@@ -15,11 +16,13 @@ export
     innerjoin, leftjoin, rightjoin, outerjoin,
     flexijoin, joinindices, materialize_views, @optic,
     by_key, by_distance, by_pred,
-    keep, drop, closest
+    keep, drop, closest,
+    join_cache
 
 
-include("nothingindex.jl")
+include("views.jl")
 include("conditions.jl")
+include("prepare_cache.jl")
 include("bykey.jl")
 include("bydistance.jl")
 include("bypredicate.jl")
@@ -67,7 +70,7 @@ function joinindices(datas::Tuple, cond; kwargs...)
     return StructArray(StructArrays.components(IXs_unnamed))
 end
 
-function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=nothing, cardinality=nothing, mode=nothing)
+function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=nothing, cardinality=nothing, mode=nothing, cache=nothing)
     _joinindices(
         values(datas),
         normalize_arg(cond, datas),
@@ -76,10 +79,11 @@ function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=no
         normalize_groupby(groupby, datas),
         normalize_arg(cardinality, datas; default=*),
         mode,
+        cache,
     )
 end
 
-function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode)
+function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache)
     first_side = which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode)
     if first_side == 2
         return _joinindices(
@@ -90,6 +94,7 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
             swap_sides(groupby),
             swap_sides(cardinality),
             mode,
+            cache,
         ) |> swap_sides
     end
     @assert first_side == 1
@@ -100,14 +105,14 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
 
     mode = choose_mode(mode, cond, datas)
 	IXs = create_ix_array(datas, nonmatches, groupby)
-	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality)
+	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, cache)
 end
 
 function which_side_first(datas, cond, multi::Tuple{typeof(identity), typeof(identity)}, nonmatches, groupby::Nothing, cardinality, mode)
     mode_1 = choose_mode(mode, cond, datas)
     mode_2 = choose_mode(mode, swap_sides(cond), swap_sides(datas))
     if !isnothing(mode_1) && !isnothing(mode_2)
-        preferred_first_side(datas, cond, mode)
+        preferred_first_side(datas, cond, (mode_1, mode_2))
     elseif !isnothing(mode_1)
         StaticInt(1)
     elseif !isnothing(mode_2)
@@ -122,7 +127,8 @@ which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, g
 which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, groupby::StaticInt{2}, cardinality, mode) = StaticInt(2)
 which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode) = error("Unsupported parameter combination")
 
-preferred_first_side(datas, cond, mode) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
+preferred_first_side(datas, cond, modes::Tuple{M, M}) where {M} = preferred_first_side(datas, cond, first(modes))
+preferred_first_side(datas, cond, mode) = StaticInt(1)
 
 
 materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))

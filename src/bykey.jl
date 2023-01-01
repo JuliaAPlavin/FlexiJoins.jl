@@ -49,7 +49,7 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
         Vector{eltype(keys(X))}
     }()
     for (i, x) in pairs(X)
-        vec = get!(dct, keyfunc(x), fill(i, 1))
+        vec = get!(() -> fill(i, 1), dct, keyfunc(x))
         last(vec) == i || push!(vec, i)
     end
     evec = valtype(dct)()
@@ -66,21 +66,22 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first
         multi === first && get!(dct, keyfunc(x), i)
         multi === last && (dct[keyfunc(x)] = i)
     end
-    evec = Vector{valtype(dct)}()
-    return (dct, evec)
+    return dct
 end
 
 findmatchix(::Mode.Hash, cond::ByKey, a, (B, evec)::Tuple, multi::typeof(identity)) = get(B, get_actual_keyfunc(first(cond.keyfuncs))(a), evec)
 # two methods with the same body, for resolver disambiguation
-findmatchix(::Mode.Hash, cond::ByKey, a, (B, evec)::Tuple, multi::typeof(first)) = let
+findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(first)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     b = get(B, k, nothing)
-    isnothing(b) ? evec : [b]
+    T = valtype(B)
+    isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
 end
-findmatchix(::Mode.Hash, cond::ByKey, a, (B, evec)::Tuple, multi::typeof(last)) = let
+findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(last)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     b = get(B, k, nothing)
-    isnothing(b) ? evec : [b]
+    T = valtype(B)
+    isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
 end
 
 
