@@ -32,8 +32,8 @@ normalize_arg(cond::ByPred, datas) = (@assert length(datas) == 2; cond)
 
 supports_mode(::Mode.NestedLoop, ::ByPred, datas) = true
 is_match(by::ByPred, a, b) = by.pred(by.Lf(a), by.Rf(b))
-findmatchix(mode::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >))...}}, a, B, multi::Closest) =
-    @p findmatchix(mode, cond, a, B, identity) |>
+findmatchix(mode::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >))...}}, ix_a, a, B, multi::Closest) =
+    @p findmatchix(mode, cond, ix_a, a, B, identity) |>
         firstn_by!(by=i -> abs(cond.Lf(a) - cond.Rf(B[i])))
 
 supports_mode(::Mode.Hash, ::ByPred{typeof(==)}, datas) = true
@@ -43,13 +43,14 @@ supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}
 
 
 prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
-findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), a, Bdata, multi)
+findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, ix_a, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), ix_a, a, Bdata, multi)
 
 prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
-findmatchix_wix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi::typeof(identity)) =
+findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi) =
     @p cond.Lf(a) |>
-        Iterators.map(findmatchix(mode, by_key(identity, nothing), _, Bdata, multi)) |>
-        Iterators.flatten()
+        Iterators.map(findmatchix(mode, by_key(identity, nothing), nothing, _, Bdata, multi)) |>
+        Iterators.flatten() |>
+        matchix_postprocess_multi(__, multi)
 
 
 sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf

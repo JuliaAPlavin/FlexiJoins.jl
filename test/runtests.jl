@@ -75,15 +75,20 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         [(O=1, M=1), (O=2, M=5)]
 
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+    @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), groupby=:M)
 end
 
 @testset "not_same" begin
     @test_throws Exception joinindices((M1=copy(measurements), M2=measurements), by_key(:obj) & not_same())
     LR = (M1=measurements, M2=measurements)
+    @test joinindices(LR, not_same()) ==
+        @p joinindices(LR, by_key(Returns(nothing))) |> filter(_.M1 != _.M2)
+    @test joinindices(LR, not_same(order_matters=false)) ==
+        @p joinindices(LR, by_key(Returns(nothing))) |> filter(_.M1 < _.M2)
     @test joinindices(LR, by_key(:obj) & not_same()) ==
-       @p joinindices(LR, by_key(:obj)) |> filter(_.M1 != _.M2)
+        @p joinindices(LR, by_key(:obj)) |> filter(_.M1 != _.M2)
     @test joinindices(LR, by_key(:obj) & not_same(order_matters=false)) ==
-       @p joinindices(LR, by_key(:obj)) |> filter(_.M1 < _.M2)
+        @p joinindices(LR, by_key(:obj)) |> filter(_.M1 < _.M2)
 end
 
 @testset "consistent" begin
@@ -154,19 +159,41 @@ end
     end
 end
 
-@testset "eltypes" begin
-    J = innerjoin((;O=objects, M=measurements), by_key(:obj))
-    @test eltype(J.O) == eltype(objects)
-    @test eltype(J.M) == eltype(measurements)
-    J = leftjoin((;O=objects, M=measurements), by_key(:obj))
-    @test eltype(J.O) == eltype(objects)
-    @test eltype(J.M) == Union{Nothing, eltype(measurements)}
-    J = rightjoin((;O=objects, M=measurements), by_key(:obj))
-    @test eltype(J.O) == Union{Nothing, eltype(objects)}
-    @test eltype(J.M) == eltype(measurements)
-    J = outerjoin((;O=objects, M=measurements), by_key(:obj))
-    @test eltype(J.O) == Union{Nothing, eltype(objects)}
-    @test eltype(J.M) == Union{Nothing, eltype(measurements)}
+@testset "types" begin
+    @testset "container" begin
+        J = flexijoin((;O=objects, M=measurements), by_key(:obj))
+        @test J isa StructArray
+        @test J.O isa FlexiJoins.SentinelView
+        @test J.M isa FlexiJoins.SentinelView
+        Jm = FlexiJoins.materialize_views(J)
+        @test Jm isa StructArray
+        @test Jm.O isa Vector{<:NamedTuple}
+        @test Jm.M isa Vector{<:NamedTuple}
+
+        J = flexijoin((;O=objects, M=measurements), by_key(:obj); groupby=:O)
+        @test J isa StructArray
+        @test J.O isa FlexiJoins.SentinelView
+        @test J.M isa Vector{<:FlexiJoins.SentinelView}
+        Jm = FlexiJoins.materialize_views(J)
+        @test Jm isa StructArray
+        @test Jm.O isa Vector{<:NamedTuple}
+        @test Jm.M isa Vector{<:Vector}
+    end
+
+    @testset "eltype" begin
+        J = innerjoin((;O=objects, M=measurements), by_key(:obj))
+        @test eltype(J.O) == eltype(objects)
+        @test eltype(J.M) == eltype(measurements)
+        J = leftjoin((;O=objects, M=measurements), by_key(:obj))
+        @test eltype(J.O) == eltype(objects)
+        @test eltype(J.M) == Union{Nothing, eltype(measurements)}
+        J = rightjoin((;O=objects, M=measurements), by_key(:obj))
+        @test eltype(J.O) == Union{Nothing, eltype(objects)}
+        @test eltype(J.M) == eltype(measurements)
+        J = outerjoin((;O=objects, M=measurements), by_key(:obj))
+        @test eltype(J.O) == Union{Nothing, eltype(objects)}
+        @test eltype(J.M) == Union{Nothing, eltype(measurements)}
+    end
 end
 
 @testset "cardinality" begin
@@ -183,13 +210,13 @@ end
     joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0:4, M=0:1))
 end
 
-function test_modes(modes, args...; kwargs...)
+function test_modes(modes, args...; alloc=true, kwargs...)
     base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
     @testset for mode in [nothing; modes]
         cur = joinindices(args...; kwargs..., mode)
         test_unique_setequal(cur, base)
 
-        if mode != Mode.NestedLoop() && all(!isempty, args[1])
+        if alloc && mode != Mode.NestedLoop() && all(!isempty, args[1])
             LR = map(X -> repeat(X, 200), args[1])
             cond = args[2]
             joinindices(LR, Base.tail(args)...; kwargs..., mode)
@@ -231,6 +258,8 @@ end
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,))
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=keep)
 
+        first_M = cond isa FlexiJoins.ByPred{typeof(∈)}  # the ∈ condition only supports a single "direction"
+
         base = joinindices((;O=objects, M=measurements), cond)
         cache = join_cache()
         @test isnothing(cache.prepared)
@@ -240,17 +269,18 @@ end
         @test !isnothing(cache.prepared)
         @test_throws AssertionError joinindices((;O=copy(objects), M=copy(measurements)), cond; cache)
         @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:abc); cache)
-        @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; multi=(M=first,), cache)
+        @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,), cache)
         @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; mode=Mode.NestedLoop(), cache)
 
-        # fails when join sides need to be swapped, i.e. by_pred(∈):
-        # test_modes(modes, (;O=objects, M=measurements), cond; multi=(M=first,))
+        test_modes(modes, (;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,))
         # order within groups may differ, so tests fail:
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O)
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O, nonmatches=keep)
     end
     test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
     test_modes([Mode.NestedLoop(), Mode.Sort()], (;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,))
+    test_modes([Mode.NestedLoop(), Mode.Hash()], (measurements, measurements), by_key(:obj) & not_same(); alloc=false)
+    test_modes([Mode.NestedLoop(), Mode.NestedLoopFast()], (measurements, measurements), not_same(); alloc=false)
 end
 
 @testset "normalize_arg" begin

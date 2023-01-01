@@ -7,7 +7,7 @@ function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), 
 	ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
     cnt = Ref(0)
 	@inbounds for (ix_1, x_1) in pairs(first(datas))
-        IX_2 = findmatchix_wix(mode, cond, ix_1, x_1, last_optimized, last(multi))
+        IX_2 = findmatchix(mode, cond, ix_1, x_1, last_optimized, last(multi))
         cnt[] = 0
         foreach_inbounds(IX_2) do ix_2
             cnt[] += 1

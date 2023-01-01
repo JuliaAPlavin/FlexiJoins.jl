@@ -39,33 +39,39 @@ normalize_keyfunc(x) = x
 normalize_keyfunc(x::Symbol) = Accessors.PropertyLens{x}()
 
 
-findmatchix_wix(mode, cond::JoinCondition, ix_1, x_1, B_prep, multi) = findmatchix(mode, cond, x_1, B_prep, multi)
-findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propagate_empty(minimum, findmatchix(mode, cond, a, B_prep, identity))
-findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
+findmatchix(mode::Union{Mode.NestedLoop, Mode.Sort, Mode.Tree}, cond::JoinCondition, ix_a, a, B_prep, multi::Union{typeof(first), typeof(last)}) = matchix_postprocess_multi(findmatchix(mode, cond, ix_a, a, B_prep, identity), multi)
 
 
-prepare_for_join(::Mode.NestedLoop, X, cond::JoinCondition) = X
-function findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity))
+prepare_for_join(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, X, cond::JoinCondition) = X
+function findmatchix(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, cond::JoinCondition, ix_a, a, B, multi::typeof(identity))
     res = keytype(B)[]
     for (i, b) in pairs(B)
-        if is_match(cond, a, b)
+        if is_match(cond, ix_a, a, i, b)
             push!(res, i)
         end
     end
     return res
 end
+is_match(cond, ix_a, a, ix_b, b) = is_match(cond, a, b)
 firstn_by!(A::Vector, n=1; by) = view(partialsort!(A, 1:min(n, length(A)); by), 1:min(n, length(A)))
 
+matchix_postprocess_multi(IX, ::typeof(identity)) = IX
+matchix_postprocess_multi(IX, ::typeof(first)) = propagate_empty(minimum, IX)
+matchix_postprocess_multi(IX, ::typeof(last)) = propagate_empty(maximum, IX)
 propagate_empty(func::typeof(identity), arr) = arr
 propagate_empty(func::Union{typeof.((first, last))...}, arr) = func(arr, 1)
-propagate_empty(func::Union{typeof.((minimum, maximum))...}, arr) = isempty(arr) ? arr : [func(arr)]
+propagate_empty(func::Union{typeof.((minimum, maximum))...}, arr) = isempty(arr) ? MaybeVector{_eltype(arr)}() : MaybeVector{_eltype(arr)}(func(arr))
+
+# eltype returns Any for mapped/flattened iterators
+_eltype(A::AbstractArray) = eltype(A)
+_eltype(A::T) where {T} = Core.Compiler.return_type(first, Tuple{T})
 
 
 prepare_for_join(::Mode.Sort, X, cond::JoinCondition) = (X, sortperm(X; by=sort_byf(cond)))
 
-findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(identity)) =
+findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(identity)) =
     searchsorted_matchix(cond, a, B, perm)  # sort to keep same order?
-findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(closest)) =
+findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(closest)) =
     searchsorted_matchix_closest(cond, a, B, perm)
 
 
@@ -73,7 +79,7 @@ struct CompositeCondition{TC} <: JoinCondition
     conds::TC
 end
 
-is_match(by::CompositeCondition, a, b) = all(by1 -> is_match(by1, a, b), by.conds)
+is_match(by::CompositeCondition, args...) = all(by1 -> is_match(by1, args...), by.conds)
 
 Base.:(&)(a::JoinCondition, b::JoinCondition) = CompositeCondition((a, b))
 Base.:(&)(a::CompositeCondition, b::JoinCondition) = CompositeCondition((a.conds..., b))
@@ -86,15 +92,15 @@ normalize_arg(cond::CompositeCondition, datas) = CompositeCondition(map(c -> nor
 
 supports_mode(mode::Mode.NestedLoop, cond::CompositeCondition, datas) = all(c -> supports_mode(mode, c, datas), cond.conds)
 supports_mode(mode::Mode.SortChain, cond::CompositeCondition, datas) = all(c -> supports_mode(mode, c, datas), cond.conds)
-supports_mode(mode::Mode.Hash, cond::CompositeCondition, datas) = supports_mode(mode, first(cond.conds), datas) && all(c -> supports_mode(Mode.NestedLoopFast(), c, datas), Base.tail(cond.conds))
+supports_mode(mode::Mode.Hash, cond::CompositeCondition, datas) = length(cond.conds) == 2 && supports_mode(mode, first(cond.conds), datas) && all(c -> supports_mode(Mode.NestedLoopFast(), c, datas), Base.tail(cond.conds))
 supports_mode(mode::Mode.Sort, cond::CompositeCondition, datas) =
     all(c -> supports_mode(Mode.SortChain(), c, datas), cond.conds[1:end-1]) && supports_mode(mode, last(cond.conds), datas)
 
 
 prepare_for_join(mode::Mode.Hash, X, cond::CompositeCondition, multi) = prepare_for_join(mode, X, first(cond.conds), multi)
 
-findmatchix_wix(mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) = 
-    @p findmatchix(mode, first(cond.conds), a, X, multi) |>
+findmatchix(mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) = 
+    @p findmatchix(mode, first(cond.conds), ix_a, a, X, multi) |>
         Iterators.filter(is_match_ix(last(cond.conds), ix_a, _))
 
 

@@ -4,7 +4,6 @@ using StructArrays
 using Static: StaticInt
 using Accessors
 using DataPipes
-using Indexing
 using SplitApplyCombine: mapview
 using IntervalSets
 using MicroCollections: vec1
@@ -108,6 +107,7 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
     end
 
     mode = choose_mode(mode, cond, datas)
+    isnothing(mode) && error("No known mode supported by $cond")
 	IXs = create_ix_array(datas, nonmatches, groupby)
 	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, cache)
 end
@@ -133,11 +133,5 @@ which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode) = e
 
 preferred_first_side(datas, cond, modes::Tuple{M, M}) where {M} = preferred_first_side(datas, cond, first(modes))
 preferred_first_side(datas, cond, mode) = StaticInt(1)
-
-
-materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
-materialize_views(A::ViewVector) = collect(A)
-materialize_views(A::Vector{<:ViewVector}) = map(materialize_views, A)
-materialize_views(A) = A
 
 end
