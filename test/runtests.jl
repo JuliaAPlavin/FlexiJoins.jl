@@ -93,6 +93,21 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
 end
 
+@testset "eltypes" begin
+    J = innerjoin((;O=objects, M=measurements), by_key(:obj))
+    @test eltype(J.O) == eltype(objects)
+    @test eltype(J.M) == eltype(measurements)
+    J = leftjoin((;O=objects, M=measurements), by_key(:obj))
+    @test eltype(J.O) == eltype(objects)
+    @test eltype(J.M) == Union{Nothing, eltype(measurements)}
+    J = rightjoin((;O=objects, M=measurements), by_key(:obj))
+    @test eltype(J.O) == Union{Nothing, eltype(objects)}
+    @test eltype(J.M) == eltype(measurements)
+    J = outerjoin((;O=objects, M=measurements), by_key(:obj))
+    @test eltype(J.O) == Union{Nothing, eltype(objects)}
+    @test eltype(J.M) == Union{Nothing, eltype(measurements)}
+end
+
 @testset "cardinality" begin
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=1, M=1))
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=*, M=0))

@@ -6,7 +6,13 @@ end
 
 SentinelView(a, indices, sentinel) =
     SentinelView{
-        Union{eltype(a), typeof(sentinel)},
+        if eltype(indices) <: keytype(a)
+            eltype(a)
+        elseif eltype(indices) <: Union{typeof(sentinel), keytype(a)}
+            Union{eltype(a), typeof(sentinel)}
+        else
+            error()
+        end,
         ndims(indices),
         typeof(a),
         typeof(indices),
