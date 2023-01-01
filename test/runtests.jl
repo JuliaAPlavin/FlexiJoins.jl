@@ -80,10 +80,14 @@ end
 @testset "not_same" begin
     @test_throws Exception joinindices((M1=copy(measurements), M2=measurements), by_key(:obj) & not_same())
     LR = (M1=measurements, M2=measurements)
+    @test joinindices(LR, not_same()) ==
+        @p joinindices(LR, by_key(Returns(nothing))) |> filter(_.M1 != _.M2)
+    @test joinindices(LR, not_same(order_matters=false)) ==
+        @p joinindices(LR, by_key(Returns(nothing))) |> filter(_.M1 < _.M2)
     @test joinindices(LR, by_key(:obj) & not_same()) ==
-       @p joinindices(LR, by_key(:obj)) |> filter(_.M1 != _.M2)
+        @p joinindices(LR, by_key(:obj)) |> filter(_.M1 != _.M2)
     @test joinindices(LR, by_key(:obj) & not_same(order_matters=false)) ==
-       @p joinindices(LR, by_key(:obj)) |> filter(_.M1 < _.M2)
+        @p joinindices(LR, by_key(:obj)) |> filter(_.M1 < _.M2)
 end
 
 @testset "consistent" begin

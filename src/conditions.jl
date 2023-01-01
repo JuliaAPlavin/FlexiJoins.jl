@@ -44,16 +44,17 @@ findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propag
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
 
 
-prepare_for_join(::Mode.NestedLoop, X, cond::JoinCondition) = X
-function findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity))
+prepare_for_join(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, X, cond::JoinCondition) = X
+function findmatchix_wix(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, cond::JoinCondition, ix_a, a, B, multi::typeof(identity))
     res = keytype(B)[]
     for (i, b) in pairs(B)
-        if is_match(cond, a, b)
+        if is_match_wix(cond, ix_a, a, i, b)
             push!(res, i)
         end
     end
     return res
 end
+is_match_wix(cond, ix_a, a, ix_b, b) = is_match_wix(cond, a, b)
 firstn_by!(A::Vector, n=1; by) = view(partialsort!(A, 1:min(n, length(A)); by), 1:min(n, length(A)))
 
 propagate_empty(func::typeof(identity), arr) = arr

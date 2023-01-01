@@ -10,4 +10,5 @@ swap_sides(cond::NotSame) = cond
 supports_mode(mode::Mode.NestedLoop, cond::NotSame, datas) = first(datas) === last(datas)
 supports_mode(mode::Mode.NestedLoopFast, cond::NotSame, datas) = first(datas) === last(datas)
 
+is_match_wix(cond::NotSame, ix_a, a, ix_b, b) = is_match_ix(cond, ix_a, ix_b)
 is_match_ix(cond::NotSame, ix_a, ix_b) = cond.order_matters ? ix_a != ix_b : ix_a < ix_b
