@@ -24,7 +24,7 @@ normalize_keyfunc(x::Symbol) = (Accessors.PropertyLens{x}(),)
 get_actual_keyfunc(x::Tuple) = arg -> map(el -> el(arg), x)
 
 
-function optimize(::Mode.Hash, which, datas, cond::ByKey, multi::typeof(identity))
+function prepare_for_join(::Mode.Hash, which, datas, cond::ByKey, multi::typeof(identity))
     keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
     X = which(datas)
     dct = Dict{
@@ -37,7 +37,7 @@ function optimize(::Mode.Hash, which, datas, cond::ByKey, multi::typeof(identity
     return dct
 end
 
-function optimize(::Mode.Hash, which, datas, cond::ByKey, multi::Union{typeof(first), typeof(last)})
+function prepare_for_join(::Mode.Hash, which, datas, cond::ByKey, multi::Union{typeof(first), typeof(last)})
     keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
     X = which(datas)
     dct = Dict{

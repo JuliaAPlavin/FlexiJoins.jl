@@ -16,7 +16,7 @@ best_mode(cond, datas) =
     error("No known mode supported by $cond")
 
 
-function optimize(::Mode.Sort, which, datas, cond::JoinCondition, multi)
+function prepare_for_join(::Mode.Sort, which, datas, cond::JoinCondition, multi)
     X = which(datas)
     (X, sortperm(X; by=sort_byf(which, cond)))
 end
