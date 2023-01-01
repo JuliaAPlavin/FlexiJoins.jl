@@ -1,5 +1,6 @@
 using FlexiJoins
 using FlexiJoins: NothingIndex
+using StructArrays, TypedTables
 using Test
 
 
@@ -10,9 +11,10 @@ function test_unique_setequal(a, b)
 end
 
 
+objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
+measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+
 @testset "basic" begin
-    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1),  (obj="E", value=9)]
-    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
     @test flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj))) ==
         [(O=(obj="A", value=2), M=(obj="A", time=8)), (O=(obj="A", value=2), M=(obj="A", time=12)), (O=(obj="A", value=2), M=(obj="A", time=16)), (O=(obj="A", value=2), M=(obj="A", time=20)), (O=(obj="B", value=-5), M=(obj="B", time=2))]
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj))) ==
@@ -43,8 +45,29 @@ end
         joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
         [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5]), (O=3, M=[]), (O=4, M=[]), (O=NothingIndex(), M=[6, 7, 8])]
     )
+    test_unique_setequal(
+        flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
+        [(O=(obj="A", value=2), M=[(obj="A", time=8), (obj="A", time=12), (obj="A", time=16), (obj="A", time=20)]), (O=(obj="B", value=-5), M=[(obj="B", time=2)]), (O=(obj="D", value=1), M=[]), (O=(obj="E", value=9), M=[]), (O=nothing, M=[(obj="C", time=6), (obj="C", time=9), (obj="C", time=12)])]
+    )
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); cardinality=(O=1, M=1)) |> materialize_views
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+end
+
+@testset "other types" verbose=true begin
+    @testset "tuple" begin
+        @test flexijoin((objects, measurements), by_key(@optic(_.obj))) ==
+            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+    end
+
+    @testset "structarray" begin
+        @test flexijoin((objects |> StructArray, measurements |> StructArray), by_key(@optic(_.obj))) ==
+            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+    end
+
+    @testset "typedtable" begin
+        @test flexijoin((objects |> Table, measurements |> Table), by_key(@optic(_.obj))) ==
+            [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
+    end
 end
 
 

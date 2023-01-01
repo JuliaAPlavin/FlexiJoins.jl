@@ -1,7 +1,11 @@
 [deps]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 CompatHelperLocal = "5224ae11-6099-4aaa-941d-3aab004bd678"
+StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
 [compat]
 CompatHelperLocal = "0.1.23"
+StructArrays = "0.6.5"
+TypedTables = "1.4.0"
 julia = "1.7"
