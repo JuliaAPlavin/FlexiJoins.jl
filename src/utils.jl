@@ -52,21 +52,21 @@ struct MaybeVector{T} <: AbstractVector{T}
     length::UInt8
     data::T
 
-    MaybeVector{T}() where {T} = new{T}(0x00)
-    MaybeVector{T}(x::T) where {T} = new{T}(0x01, x)
+    MaybeVector{T}() where {T} = new{T}(0)
+    MaybeVector{T}(x::T) where {T} = new{T}(1, x)
 end
 
 Base.axes(a::MaybeVector) = (Base.OneTo(a.length),)
 Base.size(a::MaybeVector) = (a.length,)
 Base.IndexStyle(::Type{<:MaybeVector}) = IndexLinear()
 Base.@propagate_inbounds function Base.getindex(a::MaybeVector, i::Integer)
-    @boundscheck if a.length != 0x01 || i != 1
+    @boundscheck if a.length != 1 || i != 1
         throw(BoundsError(a, i))
     end
     return a.data
 end
 Base.@propagate_inbounds function Base.getindex(a::MaybeVector)
-    @boundscheck if a.length != 0x01
+    @boundscheck if a.length != 1
         throw(BoundsError(a, i))
     end
     return a.data
