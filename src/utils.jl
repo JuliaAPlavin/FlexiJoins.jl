@@ -35,11 +35,27 @@ Base.parentindices(a::SentinelView) = a.indices
 
 
 myview(A, I::AbstractArray) = SentinelView(A, I, nothing)
+myview(A::SentinelView, I::AbstractArray) = myview(parent(A), parentindices(A)[I])
+myview(A::SentinelView, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
 myview(A, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
-myview(A::NamedTuple, I::StructArray{<:NamedTuple}) =
-    map(A, StructArrays.components(I)) do A, I
-        myview(A, I)
-    end |> StructArray
+myview(A::NamedTuple{NS}, I::StructArray{<:NamedTuple}) where {NS} =
+    if :_ ∈ NS
+        merge(
+            map(NS) do k
+                if k ∈ (:_, :__, :___)
+                    map(StructArrays.components(A[k])) do A
+                        myview(A, StructArrays.component(I, k))
+                    end
+                else
+                    NamedTuple{(k,)}((myview(A[k], StructArrays.component(I, k)),))
+                end
+            end...
+        ) |> StructArray
+    else
+        map(A, StructArrays.components(I)) do A, I
+            myview(A, I)
+        end |> StructArray
+    end
 myview(A::Tuple, I::StructArray{<:Tuple}) =
     map(A, StructArrays.components(I)) do A, I
         myview(A, I)
@@ -52,21 +68,21 @@ struct MaybeVector{T} <: AbstractVector{T}
     length::UInt8
     data::T
 
-    MaybeVector{T}() where {T} = new{T}(0x00)
-    MaybeVector{T}(x::T) where {T} = new{T}(0x01, x)
+    MaybeVector{T}() where {T} = new{T}(0)
+    MaybeVector{T}(x::T) where {T} = new{T}(1, x)
 end
 
 Base.axes(a::MaybeVector) = (Base.OneTo(a.length),)
 Base.size(a::MaybeVector) = (a.length,)
 Base.IndexStyle(::Type{<:MaybeVector}) = IndexLinear()
 Base.@propagate_inbounds function Base.getindex(a::MaybeVector, i::Integer)
-    @boundscheck if a.length != 0x01 || i != 1
+    @boundscheck if a.length != 1 || i != 1
         throw(BoundsError(a, i))
     end
     return a.data
 end
 Base.@propagate_inbounds function Base.getindex(a::MaybeVector)
-    @boundscheck if a.length != 0x01
+    @boundscheck if a.length != 1
         throw(BoundsError(a, i))
     end
     return a.data

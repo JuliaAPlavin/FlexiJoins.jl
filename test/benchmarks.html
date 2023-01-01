@@ -1,69 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <meta charset="utf-8" />
-    
-    
+<!DOCTYPE html><html lang="en"><head><meta name="viewport" content="width=device-width"><meta charset="utf-8">
 <meta name="pluto-insertion-spot-meta">
-
-    
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="white">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2a2928">
-    <meta name="color-scheme" content="light dark">
-
-    <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/img/favicon-16x16.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/img/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="96x96" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/img/favicon-96x96.png" />
-    <link rel="pluto-logo-big" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/img/logo.svg" />
-    <link rel="pluto-logo-small" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/img/favicon_unsaturated.svg" />
-    
-    <script defer>
-        console.log(
-            "Pluto.jl, by Fons van der Plas (https://github.com/fonsp), Mikołaj Bochenski (https://github.com/malyvsen), Michiel Dral (https://github.com/dralletje) and friends 🌈"
-        )
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/@observablehq/stdlib@3.3.1/dist/stdlib.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/iframe-resizer@4.2.11/js/iframeResizer.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.0.1/ansi_up.min.js" defer></script>
-
-    <!-- This doesn't do anything unless activated, and it makes sure parcel bundles this -->
-    <script id="iframe-resizer-content-window-script" src="https://cdn.jsdelivr.net/npm/iframe-resizer@4.2.11/js/iframeResizer.contentWindow.min.js" crossorigin="anonymous" defer></script>
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/editor.css" type="text/css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/hide-ui.css" type="text/css" media="all" data-pluto-file="hide-ui" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/binder.css" type="text/css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/treeview.css" type="text/css" />
-    <link rel="preload" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/juliamono.css" as="style" />
-    <link rel="preload" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/vollkorn.css" as="style" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/highlightjs.css" type="text/css">
-
-    <script data-pluto-file="launch-parameters">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="white"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2a2928"><meta name="color-scheme" content="light dark"><link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/favicon-16x16.347d2855.png"><link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/favicon-32x32.8789add4.png"><link rel="icon" type="image/png" sizes="96x96" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/favicon-96x96.48689391.png"><link rel="pluto-logo-big" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/logo.004c1d7c.svg"><link rel="pluto-logo-small" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/favicon_unsaturated.d1387b25.svg"><script type="module" src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.6f039543.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/juliamono.a2a5b30d.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.cc091749.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/vollkorn.089565a8.css"><script defer>console.log("Pluto.jl, by Fons van der Plas (https://github.com/fonsp), Mikołaj Bochenski (https://github.com/malyvsen), Michiel Dral (https://github.com/dralletje) and friends 🌈");</script><script src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.4b96dd74.js" defer></script><script src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.9f9dc874.js" defer></script><script src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.90ede145.js" defer></script><script src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.dedc49a3.js" defer></script><script id="iframe-resizer-content-window-script" src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.6386bd9d.js" crossorigin defer></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.3815f7e7.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.9fb5a9e0.css" type="text/css" media="all" data-pluto-file="hide-ui"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.347234ef.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.e3402eb2.css" type="text/css"><link rel="preload" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/juliamono.a2a5b30d.css" as="style"><link rel="preload" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/vollkorn.089565a8.css" as="style"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.e82e08bd.css" type="text/css"><script data-pluto-file="launch-parameters">
 window.pluto_notebook_id = undefined;
 window.pluto_isolated_cell_ids = undefined;
 window.pluto_notebookfile = "benchmarks.jl";
 window.pluto_disable_ui = true;
 window.pluto_slider_server_url = undefined;
-window.pluto_binder_url = "https://mybinder.org/v2/gh/fonsp/pluto-on-binder/v0.19.6";
+window.pluto_binder_url = "https://mybinder.org/v2/gh/fonsp/pluto-on-binder/v0.19.8";
 window.pluto_statefile = "benchmarks.plutostate";
 window.pluto_preamble_html = undefined;
 </script>
 <meta name="pluto-insertion-spot-parameters">
-
-
-    <script src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/editor.js" type="module" defer></script>
-    <script src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.6/frontend/warn_old_browsers.js"></script>
-
-    <!-- This script will be enabled by JS after the notebook has initialized to prevent taking up bandwidth during the initial load. -->
-    <script type="text/javascript" id="MathJax-script" integrity="sha384-VNy4JkI16R9GCNiJUCI27sGNe0Sw8gv1ichFHkTMKChXK32eYSMtzAkhFunKJ/fb" crossorigin="anonymous" not-the-src-yet="https://cdn.jsdelivr.net/npm/mathjax@3.1.2/es5/tex-svg-full.js" async></script>
-</head>
-
-<body class="loading no-MαθJax">
-    <div style="display: flex; min-height: 100vh;">
-        <pluto-editor class="fullscreen"></pluto-editor>
-    </div>
-</body>
-</html>
+<script src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.8cb71b76.js" type="module" defer></script><script src="https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.19.8/frontend-dist/editor.b9f0ac7b.js"></script><script type="text/javascript" id="MathJax-script" integrity="sha384-VNy4JkI16R9GCNiJUCI27sGNe0Sw8gv1ichFHkTMKChXK32eYSMtzAkhFunKJ/fb" crossorigin not-the-src-yet="https://cdn.jsdelivr.net/npm/mathjax@3.1.2/es5/tex-svg-full.js" async></script></head><body class="loading no-MαθJax"> <div style="display:flex;min-height:100vh;"> <pluto-editor class="fullscreen"></pluto-editor> </div> </body></html>
