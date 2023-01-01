@@ -34,6 +34,9 @@ using Dictionaries
 # ╔═╡ 0a21983a-c6af-40e3-9898-091dee85dbf6
 using StructArrays
 
+# ╔═╡ 3126064a-ab42-4a2c-877d-179d55ad82b9
+using StaticArrays
+
 # ╔═╡ aafe09a8-480d-46dc-ac13-3adaddf94621
 using PlutoUI
 
@@ -228,7 +231,7 @@ More advanced examples:
 
 # ╔═╡ d4ec4747-3c26-4fb6-a894-c50a997544a4
 md"""
-- Specify different keys for the two join sides (swap "B" and "C" in `measurement` names):
+- Specify **different keys** for the two join sides (swap "B" and "C" in `measurement` names):
 """
 
 # ╔═╡ 8f12b8c9-a07b-44a2-bc4d-340125098cb2
@@ -236,7 +239,7 @@ innerjoin((O=objects, M=measurements), by_key(:name, x -> replace(x.name, 'B' =>
 
 # ╔═╡ 8de4a77f-49e7-4a63-9b8f-11baba776ca3
 md"""
-- Join by distance, selecting all measurement pairs separated by less than 3 units of time:
+- Join **by distance**, selecting all measurement pairs separated by less than 3 units of time:
 """
 
 # ╔═╡ 08984c01-0440-4636-82f6-cf28e0586edc
@@ -249,15 +252,20 @@ md"""
 
 # ╔═╡ 74ffc42f-4f27-4667-9517-41dde37ebd8f
 md"""
-- Join by both key and distance, limiting these matches to measurements of the same object:
+- Join **by both key and distance**, limiting these matches to measurements of the same object:
 """
 
 # ╔═╡ 61e49cea-2b7e-4fb5-89fb-2e147666bf83
 innerjoin((M1=measurements, M2=measurements), by_key(:name) & by_distance(:time, Euclidean(), <=(3)))
 
+# ╔═╡ 4d2d12b8-f0b6-4030-a5b2-5830d8c415b0
+md"""
+Many other **combinations of join conditions** are supported -- just combine them with `&`.
+"""
+
 # ╔═╡ e0aa09cc-67b4-4560-bc72-540e051d0ed2
 md"""
-- Join by a predicate, selecting only measurements later than the reference time for the object:
+- Join **by the `<` predicate**, selecting only measurements later than the reference time for the object:
 """
 
 # ╔═╡ 835f9d3a-2982-4c23-95dd-3460b5acf56a
@@ -268,7 +276,7 @@ innerjoin(
 
 # ╔═╡ 5b430553-c81f-412c-bc2f-0a1165e6315f
 md"""
-- Join by a predicate, selecting only measurements less than 10 units of time later than the reference time for the object:
+- Join **by the `∈` predicate**, selecting only measurements less than 10 units of time later than the reference time for the object:
 """
 
 # ╔═╡ c36a112d-c165-4e96-b6a7-ee5c3c636fff
@@ -282,9 +290,27 @@ md"""
 Here, we create an interval for each object, and use the `∋` predicate condition.
 """
 
+# ╔═╡ af127ba2-d11d-4763-a3ad-ad7553331d36
+md"""
+- Join by **interval inclusion/overlap**: `⊆`, `⊊`, `⊋`, `⊇`, and `!isdisjoint` predicates are supported:
+"""
+
+# ╔═╡ fa98da63-08eb-4f0f-9b9d-f2e37056b164
+innerjoin(
+	(O=objects, M=measurements),
+	# `!isdisjoint` is written as `(!) ∘ isdisjoint` on Julia versions before 1.9
+	by_pred(x -> x.ref_time..(x.ref_time + 5), (!) ∘ isdisjoint, x -> x.time..(x.time+1))
+)
+
+# ╔═╡ 5e79d32c-8657-48e0-89cd-69a7e02925a5
+innerjoin(
+	(O=objects, M=measurements),
+	by_pred(x -> x.ref_time..(x.ref_time + 5), ⊇, x -> x.time..(x.time+1))
+)
+
 # ╔═╡ 59678194-c908-423e-8438-3857ecbc3d7e
 md"""
-- Select the closest match out of multiple: use the `multi=` argument, supported for `by_distance` and `by_pred` conditions when it makes sense:
+- Select **the closest match** out of multiple: use the `multi=` argument, supported for `by_distance` and `by_pred` conditions when it makes sense:
 """
 
 # ╔═╡ a39a323b-60ee-4d50-ad5f-f7541356f905
@@ -296,7 +322,7 @@ innerjoin(
 
 # ╔═╡ 92fbcc95-d124-4d42-b372-05a3ac8cc3a5
 md"""
-- When joining a dataset to itself, optionally drop matches where left and right elements are the same:
+- When joining a dataset to itself, optionally **drop matches where left and right elements are the same**:
 """
 
 # ╔═╡ e1eb7521-4b5d-410f-b26a-2ca775610d0c
@@ -430,6 +456,7 @@ IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
@@ -438,10 +465,11 @@ DataFrames = "~1.3.4"
 DataPipes = "~0.2.11"
 Dictionaries = "~0.3.21"
 Distances = "~0.10.7"
-FlexiJoins = "~0.1.22"
+FlexiJoins = "~0.1.23"
 IntervalSets = "~0.7.1"
 PlutoUI = "~0.7.39"
 Revise = "~3.3.3"
+StaticArrays = "~1.5.1"
 StructArrays = "~0.6.8"
 TypedTables = "~1.4.0"
 """
@@ -452,7 +480,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.0-rc1"
 manifest_format = "2.0"
-project_hash = "2e3b6dffaf4e776d96ca9b78bc5cccd6f17f9795"
+project_hash = "e3bf675bf58292d826e9037bca98f56e476864db"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -603,7 +631,7 @@ version = "0.8.4"
 deps = ["Accessors", "ArraysOfArrays", "DataAPI", "DataPipes", "IntervalSets", "NearestNeighbors", "Requires", "SplitApplyCombine", "Static", "StructArrays", "Tables"]
 path = "../../home/aplavin/.julia/dev/FlexiJoins"
 uuid = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
-version = "0.1.22"
+version = "0.1.23"
 
 [[deps.Formatting]]
 deps = ["Printf"]
@@ -997,11 +1025,15 @@ version = "17.4.0+0"
 # ╟─d81c61f1-9000-4f4f-bce9-d9ce85cdbfb4
 # ╟─74ffc42f-4f27-4667-9517-41dde37ebd8f
 # ╠═61e49cea-2b7e-4fb5-89fb-2e147666bf83
+# ╟─4d2d12b8-f0b6-4030-a5b2-5830d8c415b0
 # ╟─e0aa09cc-67b4-4560-bc72-540e051d0ed2
 # ╠═835f9d3a-2982-4c23-95dd-3460b5acf56a
 # ╟─5b430553-c81f-412c-bc2f-0a1165e6315f
 # ╠═c36a112d-c165-4e96-b6a7-ee5c3c636fff
 # ╟─89f1ab33-b546-4f86-9dbc-d5a7a4af99be
+# ╟─af127ba2-d11d-4763-a3ad-ad7553331d36
+# ╠═fa98da63-08eb-4f0f-9b9d-f2e37056b164
+# ╠═5e79d32c-8657-48e0-89cd-69a7e02925a5
 # ╟─59678194-c908-423e-8438-3857ecbc3d7e
 # ╠═a39a323b-60ee-4d50-ad5f-f7541356f905
 # ╟─92fbcc95-d124-4d42-b372-05a3ac8cc3a5
@@ -1042,6 +1074,7 @@ version = "17.4.0+0"
 # ╠═651473bc-c206-4312-ab8b-0dfa8fda0672
 # ╠═d4adeae4-ba96-46b0-acb8-4f2472c07e43
 # ╠═0a21983a-c6af-40e3-9898-091dee85dbf6
+# ╠═3126064a-ab42-4a2c-877d-179d55ad82b9
 # ╠═aafe09a8-480d-46dc-ac13-3adaddf94621
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
