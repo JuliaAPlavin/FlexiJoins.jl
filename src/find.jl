@@ -21,7 +21,7 @@ function optimize(which, datas, cond::ByKey, multi::typeof(identity))
     return dct
 end
 
-function optimize(which, datas, cond::ByKey, multi::typeof(first))
+function optimize(which, datas, cond::ByKey, multi::Union{typeof(first), typeof(last)})
     keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
     X = which(datas)
     dct = Dict{
@@ -29,20 +29,8 @@ function optimize(which, datas, cond::ByKey, multi::typeof(first))
         eltype(keys(X))
     }()
     for (i, x) in pairs(X)
-        get!(dct, keyfunc(x), i)
-    end
-    return dct
-end
-
-function optimize(which, datas, cond::ByKey, multi::typeof(last))
-    keyfunc = get_actual_keyfunc(which(cond.keyfuncs))
-    X = which(datas)
-    dct = Dict{
-        typeof(keyfunc(first(X))),
-        eltype(keys(X))
-    }()
-    for (i, x) in pairs(X)
-        dct[keyfunc(x)] = i
+        multi === first && get!(dct, keyfunc(x), i)
+        multi === last && (dct[keyfunc(x)] = i)
     end
     return dct
 end
