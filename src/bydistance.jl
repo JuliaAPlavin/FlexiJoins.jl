@@ -73,7 +73,7 @@ wrap_matrix(X::Vector{<:AbstractVector}) = X
 wrap_matrix(X::Vector{<:AbstractFloat}) = reshape(X, (1, :))
 wrap_matrix(X::Vector{<:Integer}) = wrap_matrix(map(float, X))
 
-wrap_vector(X::Vector{<:Number}) = X
+wrap_vector(X::AbstractVector{<:Number}) = X
 wrap_vector(X::Number) = [X]
 
 
