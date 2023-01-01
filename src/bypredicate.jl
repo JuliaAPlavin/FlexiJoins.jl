@@ -73,3 +73,6 @@ sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
     arr = mapview(i -> cond.Rf(B[i]), perm)
     @view perm[searchsortedfirst(arr, minimum(rng)):searchsortedlast(arr, maximum(rng))]
 end
+
+
+Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")

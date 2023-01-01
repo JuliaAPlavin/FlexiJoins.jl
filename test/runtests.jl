@@ -144,6 +144,11 @@ end
     end
 end
 
+@testset "show" begin
+    @test string(by_key((:a, :b)) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3))) ==
+        "by_key((:a, :b)) & by_key(key) & by_pred(id < id1) & by_distance(Euclidean(0.0)(time, time) <= 3.0)"
+end
+
 
 import CompatHelperLocal as CHL
 CHL.@check()

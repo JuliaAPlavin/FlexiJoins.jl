@@ -82,3 +82,6 @@ findmatchix(::Mode.Hash, cond::ByKey, a, (B, evec)::Tuple, multi::typeof(last)) 
     b = get(B, k, nothing)
     isnothing(b) ? evec : [b]
 end
+
+
+Base.show(io::IO, c::ByKey) = print(io, "by_key(", c.keyfuncs, ")")

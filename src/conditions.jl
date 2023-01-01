@@ -74,3 +74,6 @@ searchsorted_matchix_closest(cond::CompositeCondition, a, B, perm) =
             searchsorted_matchix(c, a, B, P)
         end |>
         searchsorted_matchix_closest(last(cond.conds), a, B, __)
+
+
+Base.show(io::IO, c::CompositeCondition) = print(io, join(c.conds, " & "))
