@@ -8,6 +8,7 @@ using DataFrames
 using IntervalSets
 using Distances
 using DataPipes
+using Accessors
 using Test
 
 

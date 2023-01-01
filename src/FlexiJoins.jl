@@ -15,7 +15,7 @@ using Requires
 
 export
     innerjoin, leftjoin, rightjoin, outerjoin,
-    flexijoin, joinindices, materialize_views, @optic,
+    flexijoin, joinindices, materialize_views,
     by_key, by_distance, by_pred, not_same,
     keep, drop, closest,
     join_cache

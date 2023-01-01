@@ -34,7 +34,7 @@ normalize_keyfunc(x::Tuple) = let
     funcs = map(normalize_keyfunc, x)
     arg -> map(f -> f(arg), funcs)
 end
-normalize_keyfunc(x::ComposedFunction) = @modify(normalize_keyfunc, x |> Properties())
+normalize_keyfunc(x::ComposedFunction) = normalize_keyfunc(x.outer) ∘ normalize_keyfunc(x.inner)
 normalize_keyfunc(x) = x
 normalize_keyfunc(x::Symbol) = Accessors.PropertyLens{x}()
 

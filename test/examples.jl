@@ -194,7 +194,7 @@ md"""
 md"""
 Join results can be returned as a flat list of matching pairs, or grouped by one of the join sides.
 
-Flat list, as above:
+**Flat list**, as above:
 """
 
 # ╔═╡ 1305276c-1dfe-4a4e-bf47-edfa2b4bc2a6
@@ -202,7 +202,7 @@ leftjoin((O=objects, M=measurements), by_key(:name))
 
 # ╔═╡ dbd13148-ac1a-41d0-aded-99b5cf7c66c1
 md"""
-Grouping by the object (`:O`):
+**Grouping by the object** (`:O`):
 """
 
 # ╔═╡ c69e7cca-c038-4170-b2c6-c1dc57659532
@@ -335,7 +335,8 @@ md"""
 
 # ╔═╡ 76c27b62-dd62-4a3b-ad5c-29150e2210eb
 md"""
-It's easy to join three or more datasets using `FlexiJoins`, one by one. Use the `_` placeholder for the side that comes from a previous join and needs to be unnested:
+It's easy to join three or more datasets using `FlexiJoins`, one by one.\
+**Use the `_` placeholder** for the side that comes from a previous join and needs to be unnested:
 """
 
 # ╔═╡ 433b5405-c9b1-4baa-9cdf-8ef601fdf0b5
@@ -343,6 +344,48 @@ J1 = innerjoin((O=objects, M=measurements), by_key(:name))
 
 # ╔═╡ bd229104-7eb1-4659-a973-26efd3af03ec
 J2 = innerjoin((_=J1, M_new=measurements), by_pred(:time ∘ :M, <, :time))
+
+# ╔═╡ f29c5fc2-6c04-4661-9a4f-68bcf9993134
+md"""
+# Cardinality checks
+"""
+
+# ╔═╡ 82b28126-7fc8-48a8-a89e-5f6614671f9b
+md"""
+Suppose you are expecting a one-to-one matching between two datasets. \
+Plain `innerjoin` doesn't ensure that each item corresponds to one and only one in the other dataset:
+"""
+
+# ╔═╡ 331d3a09-3ddc-40f6-b637-051317edae66
+innerjoin((A=1:3, B=[1:5; 1:5]), by_key(identity))
+
+# ╔═╡ 29b423dc-a2b4-460c-865f-fa7a33bc299f
+md"""
+Note that some elements from `B` are missing, and elements from `A` are repeated twice.\
+Let's use **the `cardinality=...` argument** to assert the one-to-one correspondence:
+"""
+
+# ╔═╡ d325c6b5-ae3e-46ea-9868-28edb60ee704
+md"""
+This way, join functions throw an exception when the assumption doesn't hold. If the matching is indeed bijective, everything goes fine:
+"""
+
+# ╔═╡ 2e900870-199b-4535-b7b8-9e8f88324c22
+innerjoin((A=1:3, B=1:3), by_key(identity); cardinality=(A=1, B=1))
+
+# ╔═╡ 5cb9472f-4953-41c5-9883-e78dcea448fc
+md"""
+The `cardinality` argument accepts integers, integer ranges, and symbols `+` and `*` (the default):
+"""
+
+# ╔═╡ bae66b58-bd3d-4d57-a76e-e07cd49cd78c
+innerjoin((A=1:3, B=1:5), by_key(identity); cardinality=(A=0:1, B=1))
+
+# ╔═╡ 76d8fef4-f058-484b-b6a7-1920e4333f11
+innerjoin((A=1:3, B=2:5), by_key(identity); cardinality=(A=0:1, B=0:1))
+
+# ╔═╡ 1366ec22-9acb-419f-a922-3c1a96f7833b
+innerjoin((A=1:3, B=[1:3; 1:3; 1:3]), by_key(identity); cardinality=(A=0:1, B=+))
 
 # ╔═╡ 6a1be3c5-dfb0-4fd7-94f1-25176cbd36a9
 md"""
@@ -444,6 +487,23 @@ The results should not depend on the mode, which can be used to cross-check if t
 # ╔═╡ 21f8d454-9d89-4162-85ad-bf96cf1c2f94
 PlutoUI.TableOfContents()
 
+# ╔═╡ 3a3dcb2d-67ee-4a01-b6ff-41288f4414a9
+macro exc(expr)
+	quote
+		try
+			$(esc(expr))
+		catch e
+			HTML("""<span style="color: darkred">Thrown $(typeof(e))</span>""")
+		end
+	end
+end
+
+# ╔═╡ 5db94013-5b3a-4533-858d-ec115c927169
+@exc innerjoin((A=1:3, B=[1:5; 1:5]), by_key(identity); cardinality=(A=1, B=1))
+
+# ╔═╡ 2eaa74e8-57d1-4cc4-a78b-a18fb0b38119
+@exc innerjoin((A=1:3, B=2:5), by_key(identity); cardinality=(A=0:1, B=1))
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -480,7 +540,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.0-rc1"
 manifest_format = "2.0"
-project_hash = "e3bf675bf58292d826e9037bca98f56e476864db"
+project_hash = "c430ecc8fe0661f1615f41d8ed6b584e6a7a8081"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -1042,6 +1102,18 @@ version = "17.4.0+0"
 # ╟─76c27b62-dd62-4a3b-ad5c-29150e2210eb
 # ╠═433b5405-c9b1-4baa-9cdf-8ef601fdf0b5
 # ╠═bd229104-7eb1-4659-a973-26efd3af03ec
+# ╟─f29c5fc2-6c04-4661-9a4f-68bcf9993134
+# ╟─82b28126-7fc8-48a8-a89e-5f6614671f9b
+# ╠═331d3a09-3ddc-40f6-b637-051317edae66
+# ╟─29b423dc-a2b4-460c-865f-fa7a33bc299f
+# ╠═5db94013-5b3a-4533-858d-ec115c927169
+# ╟─d325c6b5-ae3e-46ea-9868-28edb60ee704
+# ╠═2e900870-199b-4535-b7b8-9e8f88324c22
+# ╟─5cb9472f-4953-41c5-9883-e78dcea448fc
+# ╠═bae66b58-bd3d-4d57-a76e-e07cd49cd78c
+# ╠═2eaa74e8-57d1-4cc4-a78b-a18fb0b38119
+# ╠═76d8fef4-f058-484b-b6a7-1920e4333f11
+# ╠═1366ec22-9acb-419f-a922-3c1a96f7833b
 # ╟─6a1be3c5-dfb0-4fd7-94f1-25176cbd36a9
 # ╟─a6545746-8509-46fb-876f-f1661c0aec7c
 # ╟─34a220c3-1937-4f57-b386-6eaeb9085e7c
@@ -1076,5 +1148,6 @@ version = "17.4.0+0"
 # ╠═0a21983a-c6af-40e3-9898-091dee85dbf6
 # ╠═3126064a-ab42-4a2c-877d-179d55ad82b9
 # ╠═aafe09a8-480d-46dc-ac13-3adaddf94621
+# ╠═3a3dcb2d-67ee-4a01-b6ff-41288f4414a9
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
