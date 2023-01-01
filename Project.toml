@@ -15,7 +15,7 @@ StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 
 [compat]
 Accessors = "0.1.9"
-DataPipes = "0.2.8"
+DataPipes = "0.2.10"
 Indexing = "1.1.1"
 IntervalSets = "0.5.4, 0.6"
 NearestNeighbors = "0.4.10"

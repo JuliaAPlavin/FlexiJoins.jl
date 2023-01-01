@@ -2,8 +2,6 @@ struct ByKey{TFs} <: JoinCondition
     keyfuncs::TFs
 end
 
-# function index end
-# by_key(keyfunc::typeof(index)) = ByKey(only ∘ parentindices)
 by_key(keyfunc) = ByKey(keyfunc)
 
 normalize_arg(cond::ByKey{<:NamedTuple{NSk}}, datas::NamedTuple{NS}) where {NSk, NS} = (@assert NSk == NS; ByKey(map(normalize_keyfunc, cond.keyfuncs) |> values))

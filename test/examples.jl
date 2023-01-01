@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.18.4
+# v0.19.0
 
 using Markdown
 using InteractiveUtils
@@ -11,104 +11,385 @@ begin
 	eval(:(Pkg.develop(path="..")))
 	Pkg.resolve()
 	using FlexiJoins
-	using FlexiJoins: materialize_views
 end
 
 # ╔═╡ a3d4e16a-3946-4d25-81ec-32db9d404c6a
 using IntervalSets
 
+# ╔═╡ 1b2cf280-332f-49f1-b8d7-27887e66cf98
+using DataPipes
+
 # ╔═╡ d4adeae4-ba96-46b0-acb8-4f2472c07e43
 using Dictionaries
-
-# ╔═╡ dd950af2-21da-4442-82a1-af5b0ee56b2f
-using AxisKeys
-
-# ╔═╡ 32d3df12-75ea-44e3-b9c4-332f6af4199b
-using DisplayAs: Unlimited
 
 # ╔═╡ 651473bc-c206-4312-ab8b-0dfa8fda0672
 using Distances
 
-# ╔═╡ d499f69e-f851-45ae-aa6e-d267e93fefe8
+# ╔═╡ 66d5a7be-eace-4da3-8e30-a217d01849cd
+using DisplayAs
 
+# ╔═╡ 0a21983a-c6af-40e3-9898-091dee85dbf6
+using StructArrays
+
+# ╔═╡ 27cd8a65-e38d-4bf4-9013-a8054b116b00
+using TypedTables
+
+# ╔═╡ aafe09a8-480d-46dc-ac13-3adaddf94621
+using PlutoUI
+
+# ╔═╡ 095e9db4-8910-4ba9-b95a-518904d054c5
+md"""
+!!! warn "FlexiJoins"
+	`FlexiJoins.jl` is a fresh take on joining tabular and non-tabular datasets in Julia.
+"""
+
+# ╔═╡ f19a391a-b36a-429c-8e48-dc7b05a1f534
+md"""
+Defining features of `FlexiJoins` that make it _flexible_:
+- Wide range join conditions: by key (so-called `equi-join`), by distance, by predicate, closest match (`asof join`)
+- All kinds of joins, as in `inner/left/right/outer`
+- Results can either be a flat list, or grouped by the left/right side
+- Various dataset types transparently supported
+"""
+
+# ╔═╡ 95ee9ad5-0a7c-4955-912d-efc29202abf1
+md"""
+With all these features, `FlexiJoins` are designed to be easy-to-use and fast:
+- Uniform interface to all functionaly
+- Performance close to less general solutions: see [benchmarks](https://aplavin.github.io/FlexiJoins.jl/test/benchmarks.html)
+- Extensible in terms of both new join conditions and more specialize algorithms; see source code
+"""
+
+# ╔═╡ 5d25ada1-ca21-4776-a6fc-9926040d673b
+md"""
+Outside of `FlexiJoins.jl`, there seems to be only a single join implementation that works with various tables/arrays and doesn't require converting datasets to a specific type. The `SplitApplyCombine.jl` package implements inner and left joins, and return results as flat or grouped as well. It only performs key-based equijoins, however.
+"""
+
+# ╔═╡ 216b742f-6b4b-47d4-8cc0-6313b79437f6
+md"""
+# Basic usage
+"""
+
+# ╔═╡ 35bf52e6-2d11-49ed-a6cb-6a6d8af4cbef
+md"""
+Create two example tables:\
+`objects` with `name` and `ref_time`,
+"""
 
 # ╔═╡ fcd06e43-ca78-4e92-a491-449cf1782b13
-objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1),  (obj="E", value=9)]
+objects = [(name="A", ref_time=2), (name="B", ref_time=-5), (name="D", ref_time=1),  (name="E", ref_time=9)]
 
-# ╔═╡ c28b613a-e1a3-49bc-b380-5ff90a0c8b1c
-objects_ka = KeyedArray(objects; name=["A", "B", "D", "E"])
+# ╔═╡ 4fad9980-e872-4068-9d2c-f32d7f896364
+md"""
+and `measurements` with `name` (same as in `objects`) and `time`.
+"""
 
 # ╔═╡ a47da704-89f1-418c-a96c-ebdec629d81b
-measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+measurements = [(name, time=t) for (name, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+
+# ╔═╡ 64ef0e5a-fb92-4586-9605-11aaad5642e0
+md"""
+Now join these two tables in the simplest way by the `name` field:
+"""
 
 # ╔═╡ e77b8ad3-762c-4254-8dfe-4ee0d372e494
+innerjoin((objects, measurements), by_key(:name)) |> DisplayAs.Unlimited
 
+# ╔═╡ 7298365b-765a-4d02-af15-7a5d1f45fc12
+md"""
+!!! note
+	Results are always a view of the original datasets. Use the `materialize_views` function to get materialized arrays, if actually needed: `innerjoin(...) |> materialize_views`.
+"""
 
-# ╔═╡ 2fdde107-1f07-48a8-a2d5-3b18598ef496
-joinindices((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
+# ╔═╡ 7b095ba2-3b24-42ed-bf7b-e46a3637efc7
+md"""
+Each element in the resulting array is a pair of an `object` and a `measurement` that match according to the join condition.
 
-# ╔═╡ 1ee605fc-0fd3-463e-ac74-009904af0f4a
-flexijoin(
-	(A=measurements, B=measurements),
-	by_pred(:obj, ==, :obj) & by_pred(x -> x.time..(x.time + 5), ∋, @optic(_.time))
+It's often more intuitive and less error-prone to name both sides of the join:
+"""
+
+# ╔═╡ 5909fe8e-60e8-4502-ad75-f7a8d33fe7a3
+innerjoin((O=objects, M=measurements), by_key(:name))
+
+# ╔═╡ 54478c3a-73e5-4ce4-a5bf-4196b61346b7
+md"""
+!!! note
+	It's useful to expand and inspect the join results in Pluto, both here and in examples below.
+"""
+
+# ╔═╡ 169df71b-a0e6-4f51-ba59-b042cff91e20
+md"""
+Here, the result entries are namedtuples. We'll follow this approach further.
+"""
+
+# ╔═╡ 4b818852-ad5f-4e1d-a3a0-4efcbd29f7f7
+md"""
+Naming join sides makes further processing cleaner, there is no confusion where each piece of data comes from:
+"""
+
+# ╔═╡ 31ba0ff7-0038-476c-adad-e95869873e5c
+@p innerjoin((O=objects, M=measurements), by_key(:name)) |>
+	map((; _.O.name, _.M.time, Δt=_.M.time - _.O.ref_time))
+
+# ╔═╡ fcd5aea2-5eea-4f5c-a8c4-2ea67662995b
+md"""
+If the output is needed in the flat table form for some reason, it's easy to merge fields of both sides after joining:
+"""
+
+# ╔═╡ 1723c335-d31a-4295-b3ff-c2a336898596
+@p innerjoin((O=objects, M=measurements), by_key(:name)) |>
+	map(merge(_...))
+
+# ╔═╡ 37acfa2c-e002-4df4-b3e0-8a62ae62c69e
+md"""
+# `inner/left/...` joins
+"""
+
+# ╔═╡ 4b7090c6-9eac-4c6e-89e4-3a1fb654e37f
+md"""
+`FlexiJoins.jl` provides convenience functions for the corresponding kinds of joins:
+"""
+
+# ╔═╡ 846bc59d-a8e5-406f-9a07-810a7465587b
+innerjoin((O=objects, M=measurements), by_key(:name))
+
+# ╔═╡ 5a9c36bf-d671-47c8-96f7-b60d6fe3f6d8
+leftjoin((O=objects, M=measurements), by_key(:name))
+
+# ╔═╡ f74afec8-bcd2-4413-a268-4f8b74e8689e
+rightjoin((O=objects, M=measurements), by_key(:name))
+
+# ╔═╡ c3aeb32c-626e-455a-9d95-e41d1cc0509b
+outerjoin((O=objects, M=measurements), by_key(:name))
+
+# ╔═╡ bea2727d-3976-4d58-b0b1-a87d130f8a9a
+md"""
+`nothing` in the results indicates that there are no matches on that side of the join.
+"""
+
+# ╔═╡ 2ebdf4cb-4d7e-4b3d-ba18-1ab5d037da9d
+md"""
+All these functions actually call the underlying `flexijoin(...)` function and assign its `nonmatches=` argument.\
+This argument is an alternative way to specify how non-matches are treated:
+"""
+
+# ╔═╡ 4c45972f-83bd-4866-bce4-42d252c7353c
+leftjoin((O=objects, M=measurements), by_key(:name); nonmatches=(O=keep, M=drop))  # same as leftjoin
+
+# ╔═╡ e6b9fde7-b8dc-4232-a436-be3ecdd4e113
+md"""
+# Grouping results
+"""
+
+# ╔═╡ de4bfce5-4872-48e0-9f18-a5b7b93a090c
+md"""
+Join results can be returned as a flat list of matching pairs, or grouped by one of the join sides.
+
+Flat list, as above:
+"""
+
+# ╔═╡ 1305276c-1dfe-4a4e-bf47-edfa2b4bc2a6
+leftjoin((O=objects, M=measurements), by_key(:name))
+
+# ╔═╡ dbd13148-ac1a-41d0-aded-99b5cf7c66c1
+md"""
+Grouping by the object (`:O`):
+"""
+
+# ╔═╡ c69e7cca-c038-4170-b2c6-c1dc57659532
+leftjoin((O=objects, M=measurements), by_key(:name); groupby=:O)
+
+# ╔═╡ 8ee40542-97ab-4981-8315-2ee02a7a5868
+md"""
+The latter, grouped, form is often more convenient for further processing:
+"""
+
+# ╔═╡ 5e677143-9f4d-4679-a87d-5513b35a3136
+@p leftjoin((O=objects, M=measurements), by_key(:name); groupby=:O) |>
+	map((; _.O, measurements_cnt=length(_.M)))
+
+# ╔═╡ 08b5e191-86cf-451d-87b3-8d2842953534
+md"""
+# Join conditions
+"""
+
+# ╔═╡ 1fa5892d-7c2d-4b72-a6de-4dc9668a5f36
+md"""
+All the examples above only demonstrate the most basic join condition: key equality between elements of the first and the second dataset.
+
+More advanced examples:
+"""
+
+# ╔═╡ d4ec4747-3c26-4fb6-a894-c50a997544a4
+md"""
+- Specify different keys for the two join sides (swap "B" and "C" in `measurement` names):
+"""
+
+# ╔═╡ 8f12b8c9-a07b-44a2-bc4d-340125098cb2
+innerjoin((O=objects, M=measurements), by_key((O=:name, M=x -> replace(x.name, 'B' => 'C', 'C' => 'B'))))
+
+# ╔═╡ 8de4a77f-49e7-4a63-9b8f-11baba776ca3
+md"""
+- Join by distance, selecting all measurement pairs separated by less than 3 units of time:
+"""
+
+# ╔═╡ 08984c01-0440-4636-82f6-cf28e0586edc
+innerjoin((M1=measurements, M2=measurements), by_distance(:time, Euclidean(), <=(3)))
+
+# ╔═╡ 74ffc42f-4f27-4667-9517-41dde37ebd8f
+md"""
+- Join by both key and distance, limiting these matches to measurements of the same object:
+"""
+
+# ╔═╡ 61e49cea-2b7e-4fb5-89fb-2e147666bf83
+innerjoin((M1=measurements, M2=measurements), by_key(:name) & by_distance(:time, Euclidean(), <=(3)))
+
+# ╔═╡ e0aa09cc-67b4-4560-bc72-540e051d0ed2
+md"""
+- Join by a predicate, selecting only measurements later than the reference time for the object:
+"""
+
+# ╔═╡ 835f9d3a-2982-4c23-95dd-3460b5acf56a
+innerjoin(
+	(O=objects, M=measurements),
+	by_key(:name) & by_pred(:ref_time, <, :time)
 )
 
-# ╔═╡ 4959af40-54ae-4bd8-ab8d-df5d9c46182e
-flexijoin(
-	(A=measurements, B=measurements),
-	by_pred(x -> x.time ± 3, ∋, @optic(_.time))
+# ╔═╡ 5b430553-c81f-412c-bc2f-0a1165e6315f
+md"""
+- Join by a predicate, selecting only measurements less than 10 units of time later than the reference time for the object:
+"""
+
+# ╔═╡ c36a112d-c165-4e96-b6a7-ee5c3c636fff
+innerjoin(
+	(O=objects, M=measurements),
+	by_key(:name) & by_pred(x -> x.ref_time..(x.ref_time + 10), ∋, :time)
 )
 
-# ╔═╡ d8a6bb4d-b4e2-49a2-8001-429eb121d49c
-flexijoin(
-	(A=measurements, B=measurements),
-	by_distance(@optic(_.time), Euclidean(), <=(3)),
-	multi=(B=closest,)
+# ╔═╡ 89f1ab33-b546-4f86-9dbc-d5a7a4af99be
+md"""
+Here, we create an interval for each object, and use the `∋` predicate condition.
+"""
+
+# ╔═╡ 59678194-c908-423e-8438-3857ecbc3d7e
+md"""
+- Select the closest match out of multiple: use the `multi=` argument, supported for `by_distance` and `by_pred` conditions when it makes sense:
+"""
+
+# ╔═╡ a39a323b-60ee-4d50-ad5f-f7541356f905
+innerjoin(
+	(O=objects, M=measurements),
+	by_key(:name) & by_pred(:ref_time, <, :time);
+	multi=(M=closest,)
 )
 
-# ╔═╡ dca94147-620b-483e-b9b4-2a4f6310a06c
-flexijoin(
-	(A=measurements, B=measurements),
-	by_pred(:obj, ==, :obj) & by_pred(x -> x.time..(x.time + 5), ∋, @optic(_.time));
-	mode=FlexiJoins.Mode.NestedLoop()
-)
+# ╔═╡ 6a1be3c5-dfb0-4fd7-94f1-25176cbd36a9
+md"""
+# Supported dataset types
+"""
 
-# ╔═╡ 267712c9-ba48-45a3-8889-92a2830096d6
-flexijoin(
-	(A=objects, B=measurements),
-	by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time));
-	mode=FlexiJoins.Mode.NestedLoop(),
-	groupby=:A
-)
+# ╔═╡ a6545746-8509-46fb-876f-f1661c0aec7c
+md"""
+In addition to regular arrays, `FlexiJoins.jl` supports joining a wide range of other collection types.\
+The only requirement is that they can be indexed and `view`ed as regular arrays.
 
-# ╔═╡ d404deb9-047d-4767-95ef-1e5fa6d2f1da
-flexijoin(
-	(A=objects, B=measurements),
-	by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time));
-	mode=FlexiJoins.Mode.Sort(),
-	groupby=:A
-)
+Tables that don't fit this requirement should be converted first. Common conversion targers are a vector-of-namedtuples (row-oriented; use `Tables.rowtable()`) and a `StructArray` (column-oriented).
+"""
+
+# ╔═╡ 34a220c3-1937-4f57-b386-6eaeb9085e7c
+md"""
+Examples of supported types include:
+"""
+
+# ╔═╡ 94e2c182-e401-4042-a80d-cecb3f4dce4d
+md"""
+- `StructArray`s, that are basic tables with a column layout:
+"""
+
+# ╔═╡ 449d3cc5-e27b-474b-a4ed-7cf8f2af26e6
+objs_SA = StructArray(objects)
+
+# ╔═╡ d34a81d9-8e6e-4d0a-a55e-c50e4889df6f
+innerjoin((O=objs_SA, M=measurements), by_key(:name))
+
+# ╔═╡ 0675bb7d-94fa-46a1-a580-3357c9be7041
+md"""
+- `TypedTables`:
+"""
+
+# ╔═╡ 87204bf0-f62d-41a9-9b2f-fff5f0f7029f
+objs_TT = Table(objects)
+
+# ╔═╡ 6b68594b-2608-475f-bf29-b23aedd8a9c8
+innerjoin((O=objs_TT, M=measurements), by_key(:name))
+
+# ╔═╡ 280d4c51-27b9-4814-a65d-4378c13955fa
+md"""
+- `Dictionary`s:
+"""
+
+# ╔═╡ 186af722-b435-47d1-858f-252733af7203
+meas_dict = dictionary('a':'h' .=> measurements)
+
+# ╔═╡ 1c858fa5-d6b8-477f-bea9-276efc71050f
+innerjoin((O=objs_SA, M=meas_dict), by_key(:name))
+
+# ╔═╡ a847c938-c533-45ea-aa0b-f6c404d7fe61
+md"""
+# Join modes
+"""
+
+# ╔═╡ 00f6d1d7-3ee1-47b4-8dfe-37399613547f
+md"""
+`FlexiJoins.jl` support several modes of how joins are executed: they include nested loop join, sort join, hash join, and tree join.\
+In regular use, the mode is selected automatically, based on what's supported by the specified join condition. For example, `by_key()` uses hash join by default, while `by_pred` uses sorting.
+
+The naive nested loop join is never selected automatically, all joins use one of the optimized algorithms. Still, nested loops can be requested explicitly if ever needed:
+"""
+
+# ╔═╡ 4fda4c8e-8d7f-4341-a2e6-3db18292e50e
+innerjoin((O=objects, M=measurements), by_key(:name); mode=FlexiJoins.Mode.NestedLoop())
+
+# ╔═╡ 5f0b9787-259c-42ca-82b8-d393e470db8e
+md"""
+The results should not depend on the mode, which can be used to cross-check if there's a bug in an optimized join implementation.
+"""
+
+# ╔═╡ 6f844849-8e8d-4366-98a6-1d9203948eb0
+
+
+# ╔═╡ c8a8c846-3c92-49bf-ada9-a7be80b61ee3
+
+
+# ╔═╡ 21f8d454-9d89-4162-85ad-bf96cf1c2f94
+PlutoUI.TableOfContents()
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
+DataPipes = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
 Dictionaries = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
 DisplayAs = "0b91fe84-8a4c-11e9-3e1d-67c38462b6d6"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 FlexiJoins = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
+TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
 [compat]
-AxisKeys = "~0.2.1"
+DataPipes = "~0.2.10"
 Dictionaries = "~0.3.19"
 DisplayAs = "~0.1.5"
 Distances = "~0.10.7"
-FlexiJoins = "~0.1.0"
+FlexiJoins = "~0.1.1"
 IntervalSets = "~0.5.4"
+PlutoUI = "~0.7.38"
 Revise = "~3.3.3"
+StructArrays = "~0.6.5"
+TypedTables = "~1.4.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -117,13 +398,13 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.0-beta1"
 manifest_format = "2.0"
-project_hash = "76161d400e2605bb6bb73d6b135df6dde681f00b"
+project_hash = "3cbff40087c10b6f036030b94c32ffca7f24f955"
 
-[[deps.AbstractFFTs]]
-deps = ["ChainRulesCore", "LinearAlgebra"]
-git-tree-sha1 = "6f1d9bc1c08f9f4a8fa92e3ea3cb50153a1b40d4"
-uuid = "621f4979-c628-5d54-868e-fcf4e3e8185c"
-version = "1.1.0"
+[[deps.AbstractPlutoDingetjes]]
+deps = ["Pkg"]
+git-tree-sha1 = "8eaf9f1b4921132a4cff3f36a1d9ba923b14a481"
+uuid = "6e696c72-6542-2067-7265-42206c756150"
+version = "1.1.4"
 
 [[deps.Accessors]]
 deps = ["Compat", "CompositionsBase", "ConstructionBase", "Future", "LinearAlgebra", "MacroTools", "Requires", "Test"]
@@ -143,33 +424,15 @@ version = "1.1.1"
 
 [[deps.ArrayInterface]]
 deps = ["Compat", "IfElse", "LinearAlgebra", "Requires", "SparseArrays", "Static"]
-git-tree-sha1 = "6e8fada11bb015ecf9263f64b156f98b546918c7"
+git-tree-sha1 = "c933ce606f6535a7c7b98e1d86d5d1014f730596"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "5.0.5"
+version = "5.0.7"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
-[[deps.AxisKeys]]
-deps = ["AbstractFFTs", "ChainRulesCore", "CovarianceEstimation", "IntervalSets", "InvertedIndices", "LazyStack", "LinearAlgebra", "NamedDims", "OffsetArrays", "Statistics", "StatsBase", "Tables"]
-git-tree-sha1 = "8380654f50f0d73731060da163a5ae31aa29347e"
-uuid = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
-version = "0.2.1"
-
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
-
-[[deps.ChainRulesCore]]
-deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "9950387274246d08af38f6eef8cb5480862a435f"
-uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.14.0"
-
-[[deps.ChangesOfVariables]]
-deps = ["ChainRulesCore", "LinearAlgebra", "Test"]
-git-tree-sha1 = "bf98fa45a0a4cee295de98d4c1462be26345b9a1"
-uuid = "9e997f8a-9a97-42d5-a9f1-ce6bfc15e2c0"
-version = "0.1.2"
 
 [[deps.CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
@@ -177,11 +440,17 @@ git-tree-sha1 = "9fb640864691a0936f94f89150711c36072b0e8f"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 version = "1.0.8"
 
+[[deps.ColorTypes]]
+deps = ["FixedPointNumbers", "Random"]
+git-tree-sha1 = "024fe24d83e4a5bf5fc80501a314ce0d1aa35597"
+uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
+version = "0.11.0"
+
 [[deps.Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "96b0bc6c52df76506efc8a441c6cf1adcb1babc4"
+git-tree-sha1 = "b153278a25dd42c65abbf4e62344f9d22e59191b"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.42.0"
+version = "3.43.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -199,12 +468,6 @@ git-tree-sha1 = "f74e9d5388b8620b4cee35d4c5a618dd4dc547f4"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 version = "1.3.0"
 
-[[deps.CovarianceEstimation]]
-deps = ["LinearAlgebra", "Statistics", "StatsBase"]
-git-tree-sha1 = "a3e070133acab996660d31dcf479ea42849e368f"
-uuid = "587fd27a-f159-11e8-2dae-1979310e6154"
-version = "0.2.7"
-
 [[deps.DataAPI]]
 git-tree-sha1 = "cc70b17275652eb47bc9e5f81635981f13cea5c8"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
@@ -212,15 +475,9 @@ version = "1.9.0"
 
 [[deps.DataPipes]]
 deps = ["Accessors", "SplitApplyCombine"]
-git-tree-sha1 = "5ad7ce55ac6525c67247cbeba687abfa4a3e8ced"
+git-tree-sha1 = "058f621cced0c8d96f0aabd8deddb605acb33a86"
 uuid = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
-version = "0.2.8"
-
-[[deps.DataStructures]]
-deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "3daef5523dd2e769dad2365274f760ff5f282c7d"
-uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.11"
+version = "0.2.10"
 
 [[deps.DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -237,9 +494,9 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[deps.Dictionaries]]
 deps = ["Indexing", "Random"]
-git-tree-sha1 = "7e73a524c6c282e341de2b046e481abedbabd073"
+git-tree-sha1 = "0340cee29e3456a7de968736ceeb705d591875a2"
 uuid = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
-version = "0.3.19"
+version = "0.3.20"
 
 [[deps.DisplayAs]]
 git-tree-sha1 = "ac701a7b6da68758a0612ad9d81cd2ea897c95d4"
@@ -256,12 +513,6 @@ version = "0.10.7"
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
-[[deps.DocStringExtensions]]
-deps = ["LibGit2"]
-git-tree-sha1 = "b19534d1895d702889b219c382a6e18010797f0b"
-uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.8.6"
-
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
@@ -276,15 +527,38 @@ version = "1.5.0"
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
+[[deps.FixedPointNumbers]]
+deps = ["Statistics"]
+git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
+uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
+version = "0.8.4"
+
 [[deps.FlexiJoins]]
 deps = ["Accessors", "DataPipes", "Indexing", "IntervalSets", "NearestNeighbors", "SplitApplyCombine", "Static", "StructArrays"]
 path = "../../home/aplavin/.julia/dev/FlexiJoins"
 uuid = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
-version = "0.1.0"
+version = "0.1.1"
 
 [[deps.Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
+
+[[deps.Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "8d511d5b81240fc8e6802386302675bdf47737b9"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.4"
+
+[[deps.HypertextLiteral]]
+git-tree-sha1 = "2b078b5a615c6c0396c77810d92ee8c6f470d238"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "0.9.3"
+
+[[deps.IOCapture]]
+deps = ["Logging", "Random"]
+git-tree-sha1 = "f7be53659ab06ddc986428d3a9dcc95f6fa6705a"
+uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
+version = "0.2.2"
 
 [[deps.IfElse]]
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
@@ -306,38 +580,22 @@ git-tree-sha1 = "bcf640979ee55b652f3b01650444eb7bbe3ea837"
 uuid = "8197267c-284f-5f27-9208-e0e47529a953"
 version = "0.5.4"
 
-[[deps.InverseFunctions]]
-deps = ["Test"]
-git-tree-sha1 = "91b5dcf362c5add98049e6c29ee756910b03051d"
-uuid = "3587e190-3f89-42d0-90ee-14403ec27112"
-version = "0.1.3"
-
-[[deps.InvertedIndices]]
-git-tree-sha1 = "bee5f1ef5bf65df56bdd2e40447590b272a5471f"
-uuid = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
-version = "1.1.0"
-
-[[deps.IrrationalConstants]]
-git-tree-sha1 = "7fd44fd4ff43fc60815f8e764c0f352b83c49151"
-uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
-version = "0.1.1"
-
 [[deps.IteratorInterfaceExtensions]]
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
 uuid = "82899510-4779-5014-852e-03e436cf321d"
 version = "1.0.0"
 
+[[deps.JSON]]
+deps = ["Dates", "Mmap", "Parsers", "Unicode"]
+git-tree-sha1 = "3c837543ddb02250ef42f4738347454f95079d4e"
+uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+version = "0.21.3"
+
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "9c43a2eb47147a8776ca2ba489f15a9f6f2906f8"
+git-tree-sha1 = "52617c41d2761cc05ed81fe779804d3b7f14fff7"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.11"
-
-[[deps.LazyStack]]
-deps = ["LinearAlgebra", "NamedDims", "OffsetArrays", "Test", "ZygoteRules"]
-git-tree-sha1 = "a8bf67afad3f1ee59d367267adb7c44ccac7fdee"
-uuid = "1fad7336-0346-5a1a-a56f-a06ba010965b"
-version = "0.0.7"
+version = "0.9.13"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -365,12 +623,6 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 deps = ["Libdl", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
-[[deps.LogExpFunctions]]
-deps = ["ChainRulesCore", "ChangesOfVariables", "DocStringExtensions", "InverseFunctions", "IrrationalConstants", "LinearAlgebra"]
-git-tree-sha1 = "58f25e56b706f95125dcb796f39e1fb01d913a71"
-uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-version = "0.3.10"
-
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
@@ -395,24 +647,12 @@ deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.0+0"
 
-[[deps.Missings]]
-deps = ["DataAPI"]
-git-tree-sha1 = "bf210ce90b6c9eed32d25dbcae1ebc565df2687f"
-uuid = "e1d29d7a-bbdc-5cf2-9ac0-f12de2c33e28"
-version = "1.0.2"
-
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2022.2.1"
-
-[[deps.NamedDims]]
-deps = ["AbstractFFTs", "ChainRulesCore", "CovarianceEstimation", "LinearAlgebra", "Pkg", "Requires", "Statistics"]
-git-tree-sha1 = "0856b62716585eb90cc1dada226ac9eab5f69aa5"
-uuid = "356022a1-0364-5f58-8944-0da4b18d706f"
-version = "0.2.47"
 
 [[deps.NearestNeighbors]]
 deps = ["Distances", "StaticArrays"]
@@ -424,12 +664,6 @@ version = "0.4.10"
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 version = "1.2.0"
 
-[[deps.OffsetArrays]]
-deps = ["Adapt"]
-git-tree-sha1 = "043017e0bdeff61cfbb7afeb558ab29536bbb5ed"
-uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "1.10.8"
-
 [[deps.OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
@@ -440,10 +674,22 @@ git-tree-sha1 = "85f8e6578bf1f9ee0d11e7bb1b1456435479d47c"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.4.1"
 
+[[deps.Parsers]]
+deps = ["Dates"]
+git-tree-sha1 = "621f4f3b4977325b9128d5fae7a8b4829a0c2222"
+uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
+version = "2.2.4"
+
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.8.0"
+
+[[deps.PlutoUI]]
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
+git-tree-sha1 = "670e559e5c8e191ded66fa9ea89c97f10376bb4c"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.38"
 
 [[deps.Printf]]
 deps = ["Unicode"]
@@ -456,6 +702,11 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 [[deps.Random]]
 deps = ["SHA", "Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[[deps.Reexport]]
+git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
+uuid = "189a3867-3050-52da-a836-e630ba90ab69"
+version = "1.2.2"
 
 [[deps.Requires]]
 deps = ["UUIDs"]
@@ -482,12 +733,6 @@ uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
-
-[[deps.SortingAlgorithms]]
-deps = ["DataStructures"]
-git-tree-sha1 = "b3363d7460f7d098ca0912c69b082f75625d7508"
-uuid = "a2af1166-a08f-5f64-846c-94a0d3cef48c"
-version = "1.0.1"
 
 [[deps.SparseArrays]]
 deps = ["LinearAlgebra", "Random"]
@@ -517,15 +762,9 @@ uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[deps.StatsAPI]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "c3d8ba7f3fa0625b062b82853a7d5229cb728b6b"
+git-tree-sha1 = "8d7530a38dbd2c397be7ddd01a424e4f411dcc41"
 uuid = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
-version = "1.2.1"
-
-[[deps.StatsBase]]
-deps = ["DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
-git-tree-sha1 = "8977b17906b0a1cc74ab2e3a05faa16cf08a8291"
-uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.33.16"
+version = "1.2.2"
 
 [[deps.StructArrays]]
 deps = ["Adapt", "DataAPI", "StaticArrays", "Tables"]
@@ -559,6 +798,12 @@ version = "1.10.0"
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
+[[deps.TypedTables]]
+deps = ["Adapt", "Dictionaries", "Indexing", "SplitApplyCombine", "Tables", "Unicode"]
+git-tree-sha1 = "f91a10d0132310a31bc4f8d0d29ce052536bd7d7"
+uuid = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
+version = "1.4.0"
+
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
@@ -570,12 +815,6 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
 version = "1.2.12+1"
-
-[[deps.ZygoteRules]]
-deps = ["MacroTools"]
-git-tree-sha1 = "8c1a8e4dfacb1fd631745552c8db35d0deb09ea0"
-uuid = "700de1a5-db45-46bc-99cf-38207098b444"
-version = "0.2.2"
 
 [[deps.libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
@@ -594,23 +833,84 @@ version = "16.2.1+1"
 """
 
 # ╔═╡ Cell order:
+# ╟─095e9db4-8910-4ba9-b95a-518904d054c5
+# ╟─f19a391a-b36a-429c-8e48-dc7b05a1f534
+# ╟─95ee9ad5-0a7c-4955-912d-efc29202abf1
+# ╟─5d25ada1-ca21-4776-a6fc-9926040d673b
+# ╟─216b742f-6b4b-47d4-8cc0-6313b79437f6
+# ╟─35bf52e6-2d11-49ed-a6cb-6a6d8af4cbef
+# ╠═fcd06e43-ca78-4e92-a491-449cf1782b13
+# ╟─4fad9980-e872-4068-9d2c-f32d7f896364
+# ╠═a47da704-89f1-418c-a96c-ebdec629d81b
+# ╟─64ef0e5a-fb92-4586-9605-11aaad5642e0
+# ╠═e77b8ad3-762c-4254-8dfe-4ee0d372e494
+# ╟─7298365b-765a-4d02-af15-7a5d1f45fc12
+# ╟─7b095ba2-3b24-42ed-bf7b-e46a3637efc7
+# ╠═5909fe8e-60e8-4502-ad75-f7a8d33fe7a3
+# ╟─54478c3a-73e5-4ce4-a5bf-4196b61346b7
+# ╟─169df71b-a0e6-4f51-ba59-b042cff91e20
+# ╟─4b818852-ad5f-4e1d-a3a0-4efcbd29f7f7
+# ╠═31ba0ff7-0038-476c-adad-e95869873e5c
+# ╟─fcd5aea2-5eea-4f5c-a8c4-2ea67662995b
+# ╠═1723c335-d31a-4295-b3ff-c2a336898596
+# ╟─37acfa2c-e002-4df4-b3e0-8a62ae62c69e
+# ╟─4b7090c6-9eac-4c6e-89e4-3a1fb654e37f
+# ╠═846bc59d-a8e5-406f-9a07-810a7465587b
+# ╠═5a9c36bf-d671-47c8-96f7-b60d6fe3f6d8
+# ╠═f74afec8-bcd2-4413-a268-4f8b74e8689e
+# ╠═c3aeb32c-626e-455a-9d95-e41d1cc0509b
+# ╟─bea2727d-3976-4d58-b0b1-a87d130f8a9a
+# ╟─2ebdf4cb-4d7e-4b3d-ba18-1ab5d037da9d
+# ╠═4c45972f-83bd-4866-bce4-42d252c7353c
+# ╟─e6b9fde7-b8dc-4232-a436-be3ecdd4e113
+# ╟─de4bfce5-4872-48e0-9f18-a5b7b93a090c
+# ╠═1305276c-1dfe-4a4e-bf47-edfa2b4bc2a6
+# ╟─dbd13148-ac1a-41d0-aded-99b5cf7c66c1
+# ╠═c69e7cca-c038-4170-b2c6-c1dc57659532
+# ╟─8ee40542-97ab-4981-8315-2ee02a7a5868
+# ╠═5e677143-9f4d-4679-a87d-5513b35a3136
+# ╟─08b5e191-86cf-451d-87b3-8d2842953534
+# ╟─1fa5892d-7c2d-4b72-a6de-4dc9668a5f36
+# ╟─d4ec4747-3c26-4fb6-a894-c50a997544a4
+# ╠═8f12b8c9-a07b-44a2-bc4d-340125098cb2
+# ╟─8de4a77f-49e7-4a63-9b8f-11baba776ca3
+# ╠═08984c01-0440-4636-82f6-cf28e0586edc
+# ╟─74ffc42f-4f27-4667-9517-41dde37ebd8f
+# ╠═61e49cea-2b7e-4fb5-89fb-2e147666bf83
+# ╟─e0aa09cc-67b4-4560-bc72-540e051d0ed2
+# ╠═835f9d3a-2982-4c23-95dd-3460b5acf56a
+# ╟─5b430553-c81f-412c-bc2f-0a1165e6315f
+# ╠═c36a112d-c165-4e96-b6a7-ee5c3c636fff
+# ╟─89f1ab33-b546-4f86-9dbc-d5a7a4af99be
+# ╟─59678194-c908-423e-8438-3857ecbc3d7e
+# ╠═a39a323b-60ee-4d50-ad5f-f7541356f905
+# ╟─6a1be3c5-dfb0-4fd7-94f1-25176cbd36a9
+# ╟─a6545746-8509-46fb-876f-f1661c0aec7c
+# ╟─34a220c3-1937-4f57-b386-6eaeb9085e7c
+# ╟─94e2c182-e401-4042-a80d-cecb3f4dce4d
+# ╠═449d3cc5-e27b-474b-a4ed-7cf8f2af26e6
+# ╠═d34a81d9-8e6e-4d0a-a55e-c50e4889df6f
+# ╟─0675bb7d-94fa-46a1-a580-3357c9be7041
+# ╠═87204bf0-f62d-41a9-9b2f-fff5f0f7029f
+# ╠═6b68594b-2608-475f-bf29-b23aedd8a9c8
+# ╟─280d4c51-27b9-4814-a65d-4378c13955fa
+# ╠═186af722-b435-47d1-858f-252733af7203
+# ╠═1c858fa5-d6b8-477f-bea9-276efc71050f
+# ╟─a847c938-c533-45ea-aa0b-f6c404d7fe61
+# ╟─00f6d1d7-3ee1-47b4-8dfe-37399613547f
+# ╠═4fda4c8e-8d7f-4341-a2e6-3db18292e50e
+# ╟─5f0b9787-259c-42ca-82b8-d393e470db8e
+# ╠═6f844849-8e8d-4366-98a6-1d9203948eb0
+# ╠═c8a8c846-3c92-49bf-ada9-a7be80b61ee3
 # ╠═24683ed0-b052-11ec-2ee1-dfbf11c71aa2
 # ╠═a3d4e16a-3946-4d25-81ec-32db9d404c6a
+# ╠═1b2cf280-332f-49f1-b8d7-27887e66cf98
 # ╠═d4adeae4-ba96-46b0-acb8-4f2472c07e43
-# ╠═dd950af2-21da-4442-82a1-af5b0ee56b2f
-# ╠═32d3df12-75ea-44e3-b9c4-332f6af4199b
 # ╠═651473bc-c206-4312-ab8b-0dfa8fda0672
-# ╠═d499f69e-f851-45ae-aa6e-d267e93fefe8
-# ╠═fcd06e43-ca78-4e92-a491-449cf1782b13
-# ╠═c28b613a-e1a3-49bc-b380-5ff90a0c8b1c
-# ╠═a47da704-89f1-418c-a96c-ebdec629d81b
-# ╠═e77b8ad3-762c-4254-8dfe-4ee0d372e494
-# ╠═2fdde107-1f07-48a8-a2d5-3b18598ef496
-# ╠═1ee605fc-0fd3-463e-ac74-009904af0f4a
-# ╠═4959af40-54ae-4bd8-ab8d-df5d9c46182e
-# ╠═d8a6bb4d-b4e2-49a2-8001-429eb121d49c
-# ╠═dca94147-620b-483e-b9b4-2a4f6310a06c
-# ╠═267712c9-ba48-45a3-8889-92a2830096d6
-# ╠═d404deb9-047d-4767-95ef-1e5fa6d2f1da
+# ╠═66d5a7be-eace-4da3-8e30-a217d01849cd
+# ╠═0a21983a-c6af-40e3-9898-091dee85dbf6
+# ╠═27cd8a65-e38d-4bf4-9013-a8054b116b00
+# ╠═aafe09a8-480d-46dc-ac13-3adaddf94621
+# ╠═21f8d454-9d89-4162-85ad-bf96cf1c2f94
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

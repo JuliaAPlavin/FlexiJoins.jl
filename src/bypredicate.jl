@@ -5,8 +5,6 @@ struct ByPred{TP, TL, TR} <: JoinCondition
 end
 
 by_pred(Lf, pred, Rf) = ByPred(Lf, Rf, pred)
-# by_pred(Lf, pred::typeof(isequal), Rf) = by_key((Lf, Rf))
-# is_match(by::ByPred, a, b) = by.pred(a, b)
 
 innerfunc(f::ComposedFunction) = innerfunc(f.inner)
 innerfunc(f) = f

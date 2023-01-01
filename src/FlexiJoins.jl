@@ -11,7 +11,8 @@ import NearestNeighbors as NN
 
 
 export
-    flexijoin, joinindices, @optic,
+    innerjoin, leftjoin, rightjoin, outerjoin,
+    flexijoin, joinindices, materialize_views, @optic,
     by_key, by_distance, by_pred,
     keep, drop, closest
 
@@ -23,6 +24,12 @@ include("bydistance.jl")
 include("bypredicate.jl")
 include("normalize_specs.jl")
 include("ix_compute.jl")
+
+
+innerjoin(args...; kwargs...) = flexijoin(args...; kwargs...)
+leftjoin(datas, args...; kwargs...) = flexijoin(datas, args...; nonmatches=ntuple(i -> i == 1 ? keep : drop, length(datas)), kwargs...)
+rightjoin(datas, args...; kwargs...) = flexijoin(datas, args...; nonmatches=ntuple(i -> i == 1 ? drop : keep, length(datas)), kwargs...)
+outerjoin(datas, args...; kwargs...) = flexijoin(datas, args...; nonmatches=ntuple(i -> keep, length(datas)), kwargs...)
 
 
 function flexijoin(datas, cond; kwargs...)
