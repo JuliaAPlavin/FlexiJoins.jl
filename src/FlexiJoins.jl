@@ -15,11 +15,13 @@ export
     innerjoin, leftjoin, rightjoin, outerjoin,
     flexijoin, joinindices, materialize_views, @optic,
     by_key, by_distance, by_pred,
-    keep, drop, closest
+    keep, drop, closest,
+    join_cache
 
 
 include("nothingindex.jl")
 include("conditions.jl")
+include("prepare_cache.jl")
 include("bykey.jl")
 include("bydistance.jl")
 include("bypredicate.jl")
@@ -67,7 +69,7 @@ function joinindices(datas::Tuple, cond; kwargs...)
     return StructArray(StructArrays.components(IXs_unnamed))
 end
 
-function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=nothing, cardinality=nothing, mode=nothing)
+function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=nothing, cardinality=nothing, mode=nothing, cache=nothing)
     _joinindices(
         values(datas),
         normalize_arg(cond, datas),
@@ -76,10 +78,11 @@ function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=no
         normalize_groupby(groupby, datas),
         normalize_arg(cardinality, datas; default=*),
         mode,
+        cache,
     )
 end
 
-function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode)
+function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache)
     first_side = which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode)
     if first_side == 2
         return _joinindices(
@@ -90,6 +93,7 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
             swap_sides(groupby),
             swap_sides(cardinality),
             mode,
+            cache,
         ) |> swap_sides
     end
     @assert first_side == 1
@@ -100,7 +104,7 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
 
     mode = choose_mode(mode, cond, datas)
 	IXs = create_ix_array(datas, nonmatches, groupby)
-	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality)
+	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, cache)
 end
 
 function which_side_first(datas, cond, multi::Tuple{typeof(identity), typeof(identity)}, nonmatches, groupby::Nothing, cardinality, mode)

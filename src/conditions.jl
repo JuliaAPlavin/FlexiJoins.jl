@@ -27,7 +27,6 @@ choose_mode(mode::Nothing, cond, datas) =
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propagate_empty(minimum, findmatchix(mode, cond, a, B_prep, identity))
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
 
-prepare_for_join(mode, X, cond::JoinCondition, multi) = prepare_for_join(mode, X, cond)
 
 prepare_for_join(::Mode.NestedLoop, X, cond::JoinCondition) = X
 findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity)) = findall(map(b -> is_match(cond, a, b), B))

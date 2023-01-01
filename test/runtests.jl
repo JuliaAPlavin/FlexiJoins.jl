@@ -109,6 +109,19 @@ end
         test_modes(modes, (;O=objects, M=measurements), cond)
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,))
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=keep)
+
+        base = joinindices((;O=objects, M=measurements), cond)
+        cache = join_cache()
+        @test isnothing(cache.prepared)
+        test_unique_setequal(joinindices((;O=objects, M=measurements), cond; cache), base)
+        @test !isnothing(cache.prepared)
+        test_unique_setequal(joinindices((;O=objects, M=measurements), cond; cache), base)
+        @test !isnothing(cache.prepared)
+        @test_throws AssertionError joinindices((;O=copy(objects), M=copy(measurements)), cond; cache)
+        @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:abc); cache)
+        @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; multi=(M=first,), cache)
+        @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; mode=Mode.NestedLoop(), cache)
+
         # fails when join sides need to be swapped, i.e. by_pred(∈):
         # test_modes(modes, (;O=objects, M=measurements), cond; multi=(M=first,))
         # order within groups may differ, so tests fail:
