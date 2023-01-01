@@ -33,6 +33,7 @@ is_match(by::ByKey, a, b) = by.keyfunc(a) == by.keyfunc(b)
 normalize_arg(cond::ByKey, datas::NamedTuple{NS}) where {NS} = ByKey(cond.keyfunc)
 normalize_arg(cond::ByKey, datas::Tuple) = ByKey(cond.keyfunc)
 
+
 struct ByPred{TP} <: JoinCondition
     pred::TP
 end

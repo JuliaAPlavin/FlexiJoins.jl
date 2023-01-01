@@ -15,6 +15,7 @@ export
 
 include("nothingindex.jl")
 include("conditions.jl")
+include("find.jl")
 include("normalize_specs.jl")
 include("ix_compute.jl")
 
@@ -52,18 +53,6 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
 	IXs = create_ix_array(datas, nonmatches, groupby)
 	fill_ix_array!(IXs, datas, cond, multi, nonmatches, groupby, cardinality)
 end
-
-
-findmatchix(cond::JoinCondition, a, B, multi::typeof(identity)) = findall(is_match(cond, a), B)
-findmatchix(cond::JoinCondition, a, B, multi::typeof(first)) = let
-    ix = findfirst(is_match(cond, a), B)
-    isnothing(ix) ? [] : [ix]
-end
-findmatchix(cond::JoinCondition, a, B, multi::typeof(last)) = let
-    ix = findlast(is_match(cond, a), B)
-    isnothing(ix) ? [] : [ix]
-end
-
 
 
 materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
