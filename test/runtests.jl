@@ -4,6 +4,7 @@ using StructArrays, TypedTables
 using StaticArrays
 using OffsetArrays
 using Dictionaries: dictionary
+using DataFrames
 using IntervalSets
 using Distances
 using DataPipes
@@ -411,6 +412,17 @@ end
                 @test flexijoin((dictionary(string.('w':'z') .=> objects), measurements), by_key(:obj); mode) == expected
                 @test flexijoin((dictionary(string.('w':'z') .=> objects), dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj); mode) == expected
             end
+        end
+
+        @testset "dataframe" begin
+            odf = DataFrame(objects)
+            mdf = DataFrame(measurements)
+            edf = @p expected |> map((;_[1]..., obj_1=_[2].obj, _[2].time)) |> DataFrame
+            @test flexijoin((odf, mdf), by_key(:obj); mode) == edf
+            @test isequal(
+                leftjoin((odf, mdf), by_key(:obj); mode),
+                vcat(edf, DataFrame([(obj="D", value=1, obj_1=missing, time=missing), (obj="E", value=9, obj_1=missing, time=missing)]))
+            )
         end
     end
 end

@@ -20,11 +20,13 @@ $_commondoc
 """
 outerjoin(datas, args...; kwargs...) = flexijoin(datas, args...; nonmatches=ntuple(i -> keep, length(datas)), kwargs...)
 
-
 """    flexijoin((;A, B), by; [nonmatches=drop], [multi], [groupby], [cardinality=(*, *)])
 $_commondoc
+Performs an inner join by default. See also the `innerjoin()` function.
 """
-function flexijoin(datas, cond; kwargs...)
+flexijoin(datas, args...; kwargs...) = _flexijoin(datas, args...; kwargs...)
+
+function _flexijoin(datas, cond; kwargs...)
     IXs = joinindices(datas, cond; kwargs...)
     myview(datas, IXs)
 end

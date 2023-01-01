@@ -1,6 +1,7 @@
 module FlexiJoins
 
 using StructArrays
+using Tables: columntable
 using Static: StaticInt, static
 using Accessors
 using DataPipes
@@ -9,6 +10,7 @@ using IntervalSets
 import NearestNeighbors as NN
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 using ArraysOfArrays: VectorOfVectors
+using Requires
 
 
 export
@@ -30,5 +32,26 @@ include("bypredicate.jl")
 include("bysame.jl")
 include("ix_compute.jl")
 include("joins.jl")
+
+
+function __init__()
+    @require DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0" begin
+        using .DataFrames
+
+        function _flexijoin(datas::Tuple{DataFrame, DataFrame}, args...; kwargs...)
+            datas = map(to_table_for_join, datas)
+            res = innerjoin(datas, args...; kwargs...)
+            return hcat(map(to_df_joined, StructArrays.components(res))...; makeunique=true)
+        end
+
+        to_table_for_join(xs::DataFrame) = StructArray(columntable(xs))
+        to_df_joined(xs::AbstractArray) = DataFrame(xs)
+        function to_df_joined(xs::SentinelView)
+            base_eltype = eltype(parent(xs))
+            empty_row = constructorof(base_eltype)(ntuple(_ -> missing, fieldcount(base_eltype))...)
+            DataFrame(x isa base_eltype ? x : empty_row for x in xs)
+        end
+    end
+end
 
 end
