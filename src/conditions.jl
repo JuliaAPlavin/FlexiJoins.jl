@@ -16,7 +16,8 @@ end
 supports_mode(mode, cond, datas) = false
 supports_mode(::Mode.Sort, cond, datas) = supports_mode(Mode.SortChain(), cond, datas)
 
-best_mode(cond, datas) =
+choose_mode(mode, cond, datas) = supports_mode(mode, cond, datas) ? mode : nothing
+choose_mode(mode::Nothing, cond, datas) =
     supports_mode(Mode.Hash(), cond, datas) ? Mode.Hash() :
     supports_mode(Mode.Tree(), cond, datas) ? Mode.Tree() :
     supports_mode(Mode.Sort(), cond, datas) ? Mode.Sort() :
@@ -27,7 +28,7 @@ findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propag
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
 
 prepare_for_join(::Mode.NestedLoop, X, cond::JoinCondition, multi) = X
-findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity)) = findall(b -> is_match(cond, a, b), B)
+findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity)) = findall(map(b -> is_match(cond, a, b), B))
 propagate_empty(func::typeof(identity), arr) = arr
 propagate_empty(func::Union{typeof.((first, last))...}, arr) = func(arr, 1)
 propagate_empty(func::Union{typeof.((minimum, maximum))...}, arr) = isempty(arr) ? arr : [func(arr)]
@@ -74,3 +75,6 @@ searchsorted_matchix_closest(cond::CompositeCondition, a, B, perm) =
             searchsorted_matchix(c, a, B, P)
         end |>
         searchsorted_matchix_closest(last(cond.conds), a, B, __)
+
+
+Base.show(io::IO, c::CompositeCondition) = print(io, join(c.conds, " & "))
