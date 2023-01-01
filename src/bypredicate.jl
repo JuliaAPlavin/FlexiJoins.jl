@@ -15,7 +15,7 @@ stripinner(f::ComposedFunction) = f.inner isa ComposedFunction ? f.outer ∘ str
 normalize_arg(cond::ByPred, datas) = (@assert length(datas) == 2; cond)
 
 
-supports_mode(::Mode.NestedLoop, ::ByKey, datas) = true
+supports_mode(::Mode.NestedLoop, ::ByPred, datas) = true
 is_match(by::ByPred, a, b) = by.pred(by.Lf(a), by.Rf(b))
 findmatchix(::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >))...}}, a, B, multi::Closest) =
     @p B |>
