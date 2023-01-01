@@ -105,4 +105,11 @@ findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(last)) = let
 end
 
 
-Base.show(io::IO, c::ByKey) = print(io, "by_key(", c.keyfuncs, ")")
+function Base.show(io::IO, c::ByKey)
+    print(io, "by_key(")
+    for (i, f) in enumerate(c.keyfuncs)
+        i > 1 && print(io, ", ")
+        show(io, f)
+    end
+    print(io, ")")
+end
