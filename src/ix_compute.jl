@@ -5,25 +5,26 @@ end
 
 function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
 	ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
+    cnt = Ref(0)
 	@inbounds for (ix_1, x_1) in pairs(first(datas))
         IX_2 = findmatchix_wix(mode, cond, ix_1, x_1, last_optimized, last(multi))
-        add_to_cnt!(ix_seen_cnts[1], ix_1, length(IX_2), cardinality[1])
-		@assert cardinality_ok(length(IX_2), cardinality[2])
-		for i in eachindex(IX_2)
-            @inbounds add_to_cnt!(ix_seen_cnts[2], IX_2[i], true, cardinality[2])
-		end
+        cnt[] = 0
+        foreach_inbounds(IX_2) do ix_2
+            cnt[] += 1
+            add_to_cnt!(ix_seen_cnts[2], ix_2, true, cardinality[2])
+        end
+        add_to_cnt!(ix_seen_cnts[1], ix_1, cnt[], cardinality[1])
+		@assert cardinality_ok(cnt[], cardinality[2])
         append_matchix!(IXs, (ix_1, IX_2), first(nonmatches), groupby)
 	end
     @assert all(cnt -> cardinality_ok(cnt, cardinality[2]), ix_seen_cnts[2])
 	append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 
-function append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing)
-    for i in eachindex(IX_2)
-        push!(IXs, (ix_1, @inbounds IX_2[i]))
+append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing) = 
+    foreach_inbounds(IX_2) do ix_2
+        push!(IXs, (ix_1, ix_2))
     end
-end
-
 append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::StaticInt{1}) = isempty(IX_2) || push!(IXs, NoConvert((ix_1, IX_2)))
 append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::StaticInt{1}) = push!(IXs, NoConvert((ix_1, IX_2)))
 

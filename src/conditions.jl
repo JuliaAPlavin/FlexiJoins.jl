@@ -93,9 +93,9 @@ supports_mode(mode::Mode.Sort, cond::CompositeCondition, datas) =
 
 prepare_for_join(mode::Mode.Hash, X, cond::CompositeCondition, multi) = prepare_for_join(mode, X, first(cond.conds), multi)
 
-findmatchix_wix(mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) =
+findmatchix_wix(mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) = 
     @p findmatchix(mode, first(cond.conds), a, X, multi) |>
-        filter(is_match_ix(last(cond.conds), ix_a, _))
+        Iterators.filter(is_match_ix(last(cond.conds), ix_a, _))
 
 
 sort_byf(cond::CompositeCondition) = x -> map(c -> sort_byf(c)(x), cond.conds)

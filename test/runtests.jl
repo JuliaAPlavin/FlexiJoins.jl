@@ -64,31 +64,7 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
         [(O=(obj="A", value=2), M=[(obj="A", time=8), (obj="A", time=12), (obj="A", time=16), (obj="A", time=20)]), (O=(obj="B", value=-5), M=[(obj="B", time=2)]), (O=(obj="D", value=1), M=[]), (O=(obj="E", value=9), M=[]), (O=nothing, M=[(obj="C", time=6), (obj="C", time=9), (obj="C", time=12)])]
     )
-    test_unique_setequal(
-        joinindices((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3))),
-        joinindices((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
-    )
-    test_unique_setequal(
-        joinindices((;O=objects, M=measurements), by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3))),
-        joinindices((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
-    )
-    test_unique_setequal(
-        joinindices((;M=measurements, O=objects), by_distance(:time, :value, Euclidean(), <=(3))),
-        joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value-3)..(x.value+3))),
-    )
-    test_unique_setequal(
-        joinindices((objects, measurements), by_distance(:value, :time, Euclidean(), <=(1))),
-        joinindices((objects, measurements), by_pred(x -> (x.value, x.value+1, x.value-1), ∋, :time)),
-    )
     @test_broken isempty(joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value+3)..(x.value-3))))
-    test_unique_setequal(
-        rightjoin((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3))),
-        rightjoin((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
-    )
-    test_unique_setequal(
-        rightjoin((objects, measurements), by_distance(:value, :time, Euclidean(), <=(3))),
-        rightjoin((objects, measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
-    )
     @test joinindices((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,)) ==
         [(O=1, M=5), (O=3, M=5), (O=4, M=7)]
     @test joinindices((;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,)) ==
@@ -108,6 +84,41 @@ end
        @p joinindices(LR, by_key(:obj)) |> filter(_.M1 != _.M2)
     @test joinindices(LR, by_key(:obj) & not_same(order_matters=false)) ==
        @p joinindices(LR, by_key(:obj)) |> filter(_.M1 < _.M2)
+end
+
+@testset "consistent" begin
+    LR = (O=objects, M=measurements)
+    
+    @test joinindices(LR, by_key((:obj,))) == joinindices(LR, by_key(:obj))
+    @test joinindices(LR, by_key((:obj, :obj))) == joinindices(LR, by_key(:obj))
+    @test joinindices(LR, by_key((:obj, :obj), x -> (x.obj, x.obj))) == joinindices(LR, by_key(:obj))
+
+    @test joinindices(LR, by_pred(:obj, ==, :obj)) == joinindices(LR, by_key(:obj))
+    @test joinindices(LR, by_pred(x -> x.obj == "B" ? nothing : x.obj, ==, :obj)) == joinindices(LR, by_key(x -> x.obj == "B" ? nothing : x.obj, :obj))
+    @test joinindices(LR, by_pred(:obj, ∈, x -> (x.obj,))) == joinindices(LR, by_key(:obj))
+    @test joinindices(LR, by_pred(:obj, ∈, x -> (nothing, x.obj))) == joinindices(LR, by_key(:obj))
+    @test joinindices(LR, by_pred(:obj, ∈, x -> (x.obj, nothing))) == joinindices(LR, by_key(:obj))
+
+    test_unique_setequal(
+        joinindices(LR, by_distance(:value, :time, Euclidean(), <=(3))),
+        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+    )
+    test_unique_setequal(
+        joinindices(LR, by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3))),
+        joinindices(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+    )
+    test_unique_setequal(
+        joinindices((;M=measurements, O=objects), by_distance(:time, :value, Euclidean(), <=(3))),
+        joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value-3)..(x.value+3))),
+    )
+    test_unique_setequal(
+        joinindices(LR, by_distance(:value, :time, Euclidean(), <=(1))),
+        joinindices(LR, by_pred(x -> (x.value, x.value+1, x.value-1), ∋, :time)),
+    )
+    test_unique_setequal(
+        rightjoin(LR, by_distance(:value, :time, Euclidean(), <=(3))),
+        rightjoin(LR, by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+    )
 end
 
 @testset "unnested" begin
@@ -177,6 +188,18 @@ function test_modes(modes, args...; kwargs...)
     @testset for mode in [nothing; modes]
         cur = joinindices(args...; kwargs..., mode)
         test_unique_setequal(cur, base)
+
+        if mode != Mode.NestedLoop() && all(!isempty, args[1])
+            LR = map(X -> repeat(X, 200), args[1])
+            cond = args[2]
+            joinindices(LR, Base.tail(args)...; kwargs..., mode)
+            timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+            if cond isa FlexiJoins.ByDistance
+                @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+            else
+                @test Base.gc_alloc_count(timed.gcstats) < 150
+            end
+        end
     end
 end
 
