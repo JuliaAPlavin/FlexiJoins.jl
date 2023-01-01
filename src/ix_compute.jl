@@ -1,12 +1,12 @@
 function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, cache)
     last_optimized = prepare_for_join(cache, mode, last(datas), cond, last(multi))
-	fill_ix_array_!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, last_optimized)
+    fill_ix_array_!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, last_optimized)
 end
 
 function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
-	ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
+    ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
     cnt = Ref(0)
-	@inbounds for (ix_1, x_1) in pairs(first(datas))
+    @inbounds for (ix_1, x_1) in pairs(first(datas))
         IX_2 = findmatchix(mode, cond, ix_1, x_1, last_optimized, last(multi))
         cnt[] = 0
         foreach_inbounds(IX_2) do ix_2
@@ -14,11 +14,11 @@ function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), 
             add_to_cnt!(last(ix_seen_cnts), ix_2, true, first(cardinality))  # note that cardinality is reversed
         end
         add_to_cnt!(first(ix_seen_cnts), ix_1, cnt[], last(cardinality))  # note that cardinality is reversed
-		@assert cardinality_ok(cnt[], last(cardinality))  # cnt[] is the final count, so it must be within the cardinality; add_to_cnt! should only check that cnt <= cardinality
+        @assert cardinality_ok(cnt[], last(cardinality))  # cnt[] is the final count, so it must be within the cardinality; add_to_cnt! should only check that cnt <= cardinality
         append_matchix!(IXs, (ix_1, IX_2), first(nonmatches), groupby)
-	end
+    end
     @assert all(cnt -> cardinality_ok(cnt, first(cardinality)), last(ix_seen_cnts))  # note that cardinality is reversed
-	append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
+    append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 
 append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing) = 

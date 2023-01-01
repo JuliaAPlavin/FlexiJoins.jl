@@ -16,8 +16,8 @@ normalize_arg(x::JoinCondition, datas) = x
 normalize_arg(x, datas; default) = ntuple(Returns(x), length(datas))
 normalize_arg(x::Tuple, datas::Union{NamedTuple, Tuple}; default) = (@assert length(x) == length(datas); x)
 normalize_arg(x::NamedTuple{NSx}, datas::NamedTuple{NS}; default) where {NSx, NS} = let
-	@assert NSx ⊆ NS
-	map(n -> get(x, n, default), NS)
+    @assert NSx ⊆ NS
+    map(n -> get(x, n, default), NS)
 end
 
 

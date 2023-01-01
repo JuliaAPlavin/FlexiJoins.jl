@@ -59,7 +59,7 @@ outerjoin(datas, args...; kwargs...) = flexijoin(datas, args...; nonmatches=ntup
 $_commondoc
 """
 function flexijoin(datas, cond; kwargs...)
-	IXs = joinindices(datas, cond; kwargs...)
+    IXs = joinindices(datas, cond; kwargs...)
     myview(datas, IXs)
 end
 
@@ -108,8 +108,8 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
 
     mode = choose_mode(mode, cond, datas)
     isnothing(mode) && error("No known mode supported by $cond")
-	IXs = create_ix_array(datas, nonmatches, groupby)
-	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, cache)
+    IXs = create_ix_array(datas, nonmatches, groupby)
+    fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, cache)
 end
 
 function which_side_first(datas, cond, multi::Tuple{typeof(identity), typeof(identity)}, nonmatches, groupby::Nothing, cardinality, mode)
