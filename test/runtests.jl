@@ -1,5 +1,5 @@
 using FlexiJoins
-using FlexiJoins: NothingIndex, normalize_arg, ByKey, Mode
+using FlexiJoins: normalize_arg, ByKey, Mode
 using StructArrays, TypedTables
 using Dictionaries: dictionary
 using IntervalSets
@@ -25,13 +25,18 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     @test joinindices((;O=objects, M=[(name=x.obj,) for x in measurements]), by_key((O=@optic(_.obj), M=@optic(_.name)))) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5)]
 
+    J = flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)))
+    JI = joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)))
+    @test parentindices(J.O) == JI.O
+    @test parentindices(J.M) == JI.M
+
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(O=keep,)) ==
-        [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=3, M=NothingIndex()), (O=4, M=NothingIndex())]
+        [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=3, M=nothing), (O=4, M=nothing)]
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(M=keep,)) ==
-        [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=NothingIndex(), M=6), (O=NothingIndex(), M=7), (O=NothingIndex(), M=8)]
+        [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=nothing, M=6), (O=nothing, M=7), (O=nothing, M=8)]
     test_unique_setequal(
         joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=keep),
-        [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=3, M=NothingIndex()), (O=4, M=NothingIndex()), (O=NothingIndex(), M=6), (O=NothingIndex(), M=7), (O=NothingIndex(), M=8)]
+        [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=3, M=nothing), (O=4, M=nothing), (O=nothing, M=6), (O=nothing, M=7), (O=nothing, M=8)]
     )
 
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,)) ==
@@ -39,7 +44,7 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=last,)) ==
         [(O=1, M=4), (O=2, M=5)]
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=(O=keep,)) ==
-        [(O=1, M=1), (O=2, M=5), (O=3, M=NothingIndex()), (O=4, M=NothingIndex())]
+        [(O=1, M=1), (O=2, M=5), (O=3, M=nothing), (O=4, M=nothing)]
 
     @test flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O) ==
         [(O=(obj="A", value=2), M=[(obj="A", time=8), (obj="A", time=12), (obj="A", time=16), (obj="A", time=20)]), (O=(obj="B", value=-5), M=[(obj="B", time=2)])]
@@ -48,7 +53,7 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     @test_broken joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:M)
     test_unique_setequal(
         joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
-        [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5]), (O=3, M=[]), (O=4, M=[]), (O=NothingIndex(), M=[6, 7, 8])]
+        [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5]), (O=3, M=[]), (O=4, M=[]), (O=nothing, M=[6, 7, 8])]
     )
     test_unique_setequal(
         flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),

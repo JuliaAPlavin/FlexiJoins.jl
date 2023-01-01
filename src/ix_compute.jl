@@ -31,7 +31,7 @@ append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::StaticInt{
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::Nothing)
     IX_1 = @p ix_seen_cnts[1] |> findall(==(0))
     for ix_1 in IX_1
-        push!(IXs, (ix_1, NothingIndex()))
+        push!(IXs, (ix_1, nothing))
     end
     IXs
 end
@@ -39,7 +39,7 @@ end
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(keep)}, groupby::Nothing)
     IX_2 = @p ix_seen_cnts[2] |> findall(==(0))
     for ix_2 in IX_2
-        push!(IXs, (NothingIndex(), ix_2))
+        push!(IXs, (nothing, ix_2))
     end
     IXs
 end
@@ -51,7 +51,7 @@ end
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(keep)}, groupby::StaticInt{1})
     IX_2 = @p ix_seen_cnts[2] |> findall(==(0))
-    push!(IXs, (NothingIndex(), IX_2))
+    push!(IXs, (nothing, IX_2))
     IXs
 end
 
@@ -71,8 +71,8 @@ create_ix_array(datas, nonmatches, groupby::StaticInt) = map(ntuple(identity, le
 end |> StructArray
 
 empty_ix_vector(ix_T, nms::typeof(drop), group::Val{false}) = Vector{ix_T}()
-empty_ix_vector(ix_T, nms::typeof(keep), group::Val{false}) = Vector{Union{NothingIndex, ix_T}}()
-empty_ix_vector(ix_T, nms::typeof(only), group::Val{false}) = Vector{NothingIndex}()
+empty_ix_vector(ix_T, nms::typeof(keep), group::Val{false}) = Vector{Union{Nothing, ix_T}}()
+empty_ix_vector(ix_T, nms::typeof(only), group::Val{false}) = Vector{Nothing}()
 empty_ix_vector(ix_T, nms::typeof(drop), group::Val{true}) = Vector{Vector{ix_T}}()
 empty_ix_vector(ix_T, nms::typeof(keep), group::Val{true}) = Vector{Vector{ix_T}}()
 empty_ix_vector(ix_T, nms::typeof(only), group::Val{true}) = Vector{EmptyVector{ix_T, Vector}}()
