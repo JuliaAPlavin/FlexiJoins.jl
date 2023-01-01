@@ -510,8 +510,8 @@ end
                 @test flexijoin((dictionary(string.('w':'z') .=> objects), measurements), by_key(:obj); mode) == expected
                 @test flexijoin((dictionary(string.('w':'z') .=> objects), dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj); mode) == expected
             else
-                @test_broken flexijoin((objects, dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj); mode) == expected
-                @test flexijoin((dictionary(string.('w':'z') .=> objects), measurements), by_key(:obj); mode) == expected
+                @test flexijoin((objects, dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj); mode) == expected
+                @test_broken flexijoin((dictionary(string.('w':'z') .=> objects), measurements), by_key(:obj); mode) == expected
                 @test_broken flexijoin((dictionary(string.('w':'z') .=> objects), dictionary(Symbol.('a':'h') .=> measurements)), by_key(:obj); mode) == expected
             end
         end

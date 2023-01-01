@@ -104,4 +104,4 @@ which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, g
 which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode) = error("Unsupported parameter combination")
 
 preferred_first_side(datas, cond, modes::Tuple{M, M}) where {M} = preferred_first_side(datas, cond, first(modes))
-preferred_first_side(datas, cond, mode) = Val(1)
+preferred_first_side(datas, cond, _) = Val(findmax(length, datas)[2])
