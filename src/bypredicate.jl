@@ -68,11 +68,16 @@ sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
     @view searchsorted_matchix(cond, a, B, perm)[max(begin, end):end]
 
 @inbounds function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
-    rng = cond.Lf(a)
-    @assert rng isa Interval
+    int = cond.Lf(a)
+    @assert int isa Interval
     arr = mapview(i -> cond.Rf(B[i]), perm)
-    @view perm[searchsortedfirst(arr, minimum(rng)):searchsortedlast(arr, maximum(rng))]
+    @view perm[searchsorted_interval(arr, int)]
 end
+
+searchsorted_interval(arr, int::Interval{:closed, :closed}) = searchsortedfirst(arr, minimum(int)):searchsortedlast(arr, maximum(int))
+searchsorted_interval(arr, int::Interval{:closed,   :open}) = searchsortedfirst(arr, minimum(int)):(searchsortedfirst(arr, supremum(int)) - 1)
+searchsorted_interval(arr, int::Interval{  :open, :closed}) = (searchsortedlast(arr, infimum(int)) + 1):searchsortedlast(arr, maximum(int))
+searchsorted_interval(arr, int::Interval{  :open,   :open}) = (searchsortedlast(arr, infimum(int)) + 1):(searchsortedfirst(arr, supremum(int)) - 1)
 
 
 Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")
