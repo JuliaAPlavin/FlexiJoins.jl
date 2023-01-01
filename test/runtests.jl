@@ -133,3 +133,6 @@ end
 
 import CompatHelperLocal as CHL
 CHL.@check()
+
+import Aqua
+Aqua.test_all(FlexiJoins; ambiguities=false)
