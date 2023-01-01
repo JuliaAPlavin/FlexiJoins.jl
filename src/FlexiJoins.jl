@@ -6,7 +6,6 @@ using Accessors
 using DataPipes
 using SplitApplyCombine: mapview
 using IntervalSets
-using MicroCollections: vec1
 import NearestNeighbors as NN
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 using ArraysOfArrays: VectorOfVectors
