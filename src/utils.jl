@@ -1,51 +1,7 @@
-struct SentinelView{T, N, A, I, TS} <: AbstractArray{T, N}
-    parent::A
-    indices::I
-    sentinel::TS
-end
-
-function SentinelView(A, I, sentinel)
-    @assert !(sentinel isa keytype(A))
-    SentinelView{
-        if eltype(I) <: keytype(A)
-            valtype(A)
-        elseif eltype(I) <: Union{keytype(A), typeof(sentinel)}
-            Union{valtype(A), typeof(sentinel)}
-        else
-            error()
-        end,
-        ndims(I),
-        typeof(A),
-        typeof(I),
-        typeof(sentinel)
-    }(A, I, sentinel)
-end
-
-function sentinel_view(A, I, sentinel)
-    @assert !(sentinel isa keytype(A))
-    if A isa AbstractArray && eltype(I) <: keytype(A)
-        view(A, I)
-    else
-        SentinelView(A, I, sentinel)
-    end
-end
-
-Base.IndexStyle(::Type{SentinelView{T, N, A, I}}) where {T, N, A, I} = IndexStyle(I)
-Base.axes(a::SentinelView) = axes(a.indices)
-Base.size(a::SentinelView) = size(a.indices)
-
-Base.@propagate_inbounds function Base.getindex(a::SentinelView, is::Int...)
-    I = a.indices[is...]
-    I === a.sentinel ? a.sentinel : a.parent[I]
-end
-
-Base.parent(a::SentinelView) = a.parent
-Base.parentindices(a::SentinelView) = (a.indices,)
-
 const VIEWTYPES = Union{SubArray, SentinelView}
 
 
-myview(A, I::AbstractArray) = sentinel_view(A, I, nothing)
+myview(A, I::AbstractArray) = sentinelview(A, I, nothing)
 myview(A::VIEWTYPES, I::AbstractArray) = myview(parent(A), only(parentindices(A))[I])
 myview(A::VIEWTYPES, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
 myview(A,            Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)

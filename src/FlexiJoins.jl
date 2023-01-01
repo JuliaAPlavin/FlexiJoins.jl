@@ -3,7 +3,7 @@ module FlexiJoins
 using StructArrays
 using Accessors
 using DataPipes
-using SplitApplyCombine: mapview
+using ArraysExtra: mapview, sentinelview, SentinelView
 using IntervalSets
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 using ArraysOfArrays: VectorOfVectors
