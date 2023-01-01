@@ -30,8 +30,8 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
 
     J = flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)))
     JI = joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)))
-    @test parentindices(J.O) == JI.O
-    @test parentindices(J.M) == JI.M
+    @test parentindices(J.O) == (JI.O,)
+    @test parentindices(J.M) == (JI.M,)
 
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(O=keep,)) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=3, M=nothing), (O=4, M=nothing)]

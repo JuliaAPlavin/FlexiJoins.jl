@@ -31,11 +31,11 @@ Base.@propagate_inbounds function Base.getindex(a::SentinelView, is::Int...)
 end
 
 Base.parent(a::SentinelView) = a.parent
-Base.parentindices(a::SentinelView) = a.indices
+Base.parentindices(a::SentinelView) = (a.indices,)
 
 
 myview(A, I::AbstractArray) = SentinelView(A, I, nothing)
-myview(A::SentinelView, I::AbstractArray) = myview(parent(A), parentindices(A)[I])
+myview(A::SentinelView, I::AbstractArray) = myview(parent(A), only(parentindices(A))[I])
 myview(A::SentinelView, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
 myview(A,               Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
 myview(A::NamedTuple{NS}, I::StructArray{<:NamedTuple}) where {NS} =
