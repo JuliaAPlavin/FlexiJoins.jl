@@ -40,24 +40,27 @@ using PlutoUI
 # ╔═╡ 095e9db4-8910-4ba9-b95a-518904d054c5
 md"""
 !!! warn "FlexiJoins"
-	`FlexiJoins.jl` is a fresh take on joining tabular and non-tabular datasets in Julia.
+	`FlexiJoins.jl` is a fresh take on joining tabular or non-tabular datasets in Julia.
+	
+	From simple joins by key, to asof joins, to merging catalogs of terrestrial or celestial coordinates --- `FlexiJoins` supports any usecase.
 """
 
 # ╔═╡ f19a391a-b36a-429c-8e48-dc7b05a1f534
 md"""
 Defining features of `FlexiJoins` that make it _flexible_:
-- Wide range join conditions: by key (so-called `equi-join`), by distance, by predicate, closest match (`asof join`)
-- All kinds of joins, as in `inner/left/right/outer`
-- Results can either be a flat list, or grouped by the left/right side
-- Various dataset types transparently supported
+- Wide range of join conditions ([details below](#08b5e191-86cf-451d-87b3-8d2842953534)): \
+  by key (so-called `equi-join`), by distance, by predicate, closest match (`asof join`)
+- All kinds of joins, as in `inner/left/right/outer`: [see below](#37acfa2c-e002-4df4-b3e0-8a62ae62c69e)
+- Results can either be a flat list, or grouped by the left/right side, [see below](#e6b9fde7-b8dc-4232-a436-be3ecdd4e113)
+- Various dataset types transparently supported, [examples below](#6a1be3c5-dfb0-4fd7-94f1-25176cbd36a9)
 """
 
 # ╔═╡ 95ee9ad5-0a7c-4955-912d-efc29202abf1
 md"""
-With all these features, `FlexiJoins` are designed to be easy-to-use and fast:
+With all these features, `FlexiJoins` is designed to be easy-to-use and fast:
 - Uniform interface to all functionaly
-- Performance close to less general solutions: see [benchmarks](https://aplavin.github.io/FlexiJoins.jl/test/benchmarks.html)
-- Extensible in terms of both new join conditions and more specialize algorithms; see source code
+- Performance close to other, less general, solutions: see [benchmarks](https://aplavin.github.io/FlexiJoins.jl/test/benchmarks.html)
+- Extensible in terms of both new join conditions and more specialized algorithms; see source code
 """
 
 # ╔═╡ 5d25ada1-ca21-4776-a6fc-9926040d673b
@@ -235,6 +238,11 @@ md"""
 
 # ╔═╡ 08984c01-0440-4636-82f6-cf28e0586edc
 innerjoin((M1=measurements, M2=measurements), by_distance(:time, Euclidean(), <=(3)))
+
+# ╔═╡ d81c61f1-9000-4f4f-bce9-d9ce85cdbfb4
+md"""
+`FlexiJoins` supports all distances in `Distances.jl`.
+"""
 
 # ╔═╡ 74ffc42f-4f27-4667-9517-41dde37ebd8f
 md"""
@@ -833,7 +841,7 @@ version = "16.2.1+1"
 """
 
 # ╔═╡ Cell order:
-# ╟─095e9db4-8910-4ba9-b95a-518904d054c5
+# ╠═095e9db4-8910-4ba9-b95a-518904d054c5
 # ╟─f19a391a-b36a-429c-8e48-dc7b05a1f534
 # ╟─95ee9ad5-0a7c-4955-912d-efc29202abf1
 # ╟─5d25ada1-ca21-4776-a6fc-9926040d673b
@@ -875,6 +883,7 @@ version = "16.2.1+1"
 # ╠═8f12b8c9-a07b-44a2-bc4d-340125098cb2
 # ╟─8de4a77f-49e7-4a63-9b8f-11baba776ca3
 # ╠═08984c01-0440-4636-82f6-cf28e0586edc
+# ╟─d81c61f1-9000-4f4f-bce9-d9ce85cdbfb4
 # ╟─74ffc42f-4f27-4667-9517-41dde37ebd8f
 # ╠═61e49cea-2b7e-4fb5-89fb-2e147666bf83
 # ╟─e0aa09cc-67b4-4560-bc72-540e051d0ed2
