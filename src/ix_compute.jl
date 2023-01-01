@@ -1,5 +1,4 @@
-function fill_ix_array!(IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality)
-    mode = best_mode(cond, datas)
+function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality)
     last_optimized = prepare_for_join(mode, last, datas, cond, last(multi))
 	ix_seen_cnts = map(datas) do data
 		map(Returns(0), data)

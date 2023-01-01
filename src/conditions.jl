@@ -16,12 +16,18 @@ best_mode(cond, datas) =
     error("No known mode supported by $cond")
 
 
+prepare_for_join(::Mode.NestedLoop, which, datas, cond::JoinCondition, multi) = which(datas)
+findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi) = propagate_empty(multi, findall(b -> is_match(cond, a, b), B))
+propagate_empty(func::typeof(identity), arr) = arr
+propagate_empty(func::Union{typeof.((first, last))...}, arr) = func(arr, 1)
+
+
 function prepare_for_join(::Mode.Sort, which, datas, cond::JoinCondition, multi)
     X = which(datas)
     (X, sortperm(X; by=sort_byf(which, cond)))
 end
 
-findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(identity)) = searchsorted_matchix(cond, a, B, perm) |> collect
+findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi) = propagate_empty(multi, searchsorted_matchix(cond, a, B, perm)) |> collect
 
 
 struct CompositeCondition{TC} <: JoinCondition

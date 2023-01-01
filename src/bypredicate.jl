@@ -14,9 +14,13 @@ stripinner(f::ComposedFunction) = f.inner isa ComposedFunction ? f.outer ∘ str
 
 normalize_arg(cond::ByPred, datas) = (@assert length(datas) == 2; cond)
 
+
+supports_mode(::Mode.NestedLoop, ::ByKey, datas) = true
+is_match(by::ByPred, a, b) = by.pred(by.Lf(a), by.Rf(b))
+
+
 supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
 supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
-
 
 sort_byf(which, cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = which((cond.Lf, cond.Rf))
 

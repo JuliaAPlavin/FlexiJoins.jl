@@ -1,5 +1,5 @@
 using FlexiJoins
-using FlexiJoins: NothingIndex, normalize_arg, ByKey
+using FlexiJoins: NothingIndex, normalize_arg, ByKey, Mode
 using StructArrays, TypedTables
 using Dictionaries: dictionary
 using Test
@@ -54,6 +54,22 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     )
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); cardinality=(O=1, M=1)) |> materialize_views
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+end
+
+function test_modes(modes, args...; kwargs...)
+    base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
+    for mode in modes
+        @test joinindices(args...; kwargs..., mode) == base
+    end
+end
+
+@testset "join modes" begin
+    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)))
+    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(O=keep,))
+    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=keep)
+    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,))
+    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O)
+    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep)
 end
 
 @testset "normalize_arg" begin

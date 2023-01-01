@@ -46,15 +46,17 @@ function _joinindices(datas, cond; kwargs...)
         normalize_arg(get(kwargs, :nonmatches, nothing), datas; default=drop),
         normalize_groupby(get(kwargs, :groupby, nothing), datas),
         normalize_arg(get(kwargs, :cardinality, nothing), datas; default=*),
+        get(kwargs, :mode, nothing),
     )
 end
 
-function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality)
+function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode)
+    mode = @something(mode, best_mode(cond, datas))
     if any(@. multi !== identity && nonmatches !== drop)
         error("Values of arguments don't make sense together: ", (; nonmatches, multi))
     end
 	IXs = create_ix_array(datas, nonmatches, groupby)
-	fill_ix_array!(IXs, datas, cond, multi, nonmatches, groupby, cardinality)
+	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality)
 end
 
 
