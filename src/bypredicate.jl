@@ -29,27 +29,27 @@ supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}
 
 sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
 
-searchsorted_matchix(cond::ByPred{typeof(<)}, a, B, perm) =
+@inbounds searchsorted_matchix(cond::ByPred{typeof(<)}, a, B, perm) =
     @view perm[searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) + 1:end]
 
-searchsorted_matchix(cond::ByPred{typeof(<=)}, a, B, perm) =
+@inbounds searchsorted_matchix(cond::ByPred{typeof(<=)}, a, B, perm) =
     @view perm[searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)):end]
 
-searchsorted_matchix(cond::ByPred{typeof(==)}, a, B, perm) =
+@inbounds searchsorted_matchix(cond::ByPred{typeof(==)}, a, B, perm) =
     @view perm[searchsorted(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
 
-searchsorted_matchix(cond::ByPred{typeof(>=)}, a, B, perm) =
+@inbounds searchsorted_matchix(cond::ByPred{typeof(>=)}, a, B, perm) =
     @view perm[begin:searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
 
-searchsorted_matchix(cond::ByPred{typeof(>)}, a, B, perm) =
+@inbounds searchsorted_matchix(cond::ByPred{typeof(>)}, a, B, perm) =
     @view perm[begin:searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) - 1]
 
-searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(<), typeof(<=)}}, a, B, perm) =
-    first(searchsorted_matchix(cond, a, B, perm), 1)
-searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(>), typeof(>=)}}, a, B, perm) =
-    last(searchsorted_matchix(cond, a, B, perm), 1)
+@inbounds searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(<), typeof(<=)}}, a, B, perm) =
+    @view searchsorted_matchix(cond, a, B, perm)[begin:min(begin, end)]
+@inbounds searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(>), typeof(>=)}}, a, B, perm) =
+    @view searchsorted_matchix(cond, a, B, perm)[max(begin, end):end]
 
-function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
+@inbounds function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
     rng = cond.Lf(a)
     @assert rng isa Interval
     arr = mapview(i -> cond.Rf(B[i]), perm)

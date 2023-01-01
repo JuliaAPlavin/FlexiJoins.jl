@@ -20,7 +20,7 @@ is_match(by::ByKey, a, b) = get_actual_keyfunc(first(by.keyfuncs))(a) == get_act
 
 supports_mode(::Mode.SortChain, ::ByKey, datas) = true
 sort_byf(cond::ByKey) = get_actual_keyfunc(last(cond.keyfuncs))
-searchsorted_matchix(cond::ByKey, a, B, perm) =
+@inbounds searchsorted_matchix(cond::ByKey, a, B, perm) =
     @view perm[searchsorted(
         mapview(i -> get_actual_keyfunc(last(cond.keyfuncs))(B[i]), perm),
         get_actual_keyfunc(first(cond.keyfuncs))(a)
@@ -36,9 +36,11 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
         Vector{eltype(keys(X))}
     }()
     for (i, x) in pairs(X)
-        push!(get!(dct, keyfunc(x), []), i)
+        vec = get!(dct, keyfunc(x), fill(i, 1))
+        last(vec) == i || push!(vec, i)
     end
-    return dct
+    evec = valtype(dct)()
+    return (dct, evec)
 end
 
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first), typeof(last)})
@@ -51,16 +53,19 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first
         multi === first && get!(dct, keyfunc(x), i)
         multi === last && (dct[keyfunc(x)] = i)
     end
-    return dct
+    evec = Vector{valtype(dct)}()
+    return (dct, evec)
 end
 
-findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::typeof(identity)) = get(B, get_actual_keyfunc(first(cond.keyfuncs))(a), valtype(B)())
+findmatchix(::Mode.Hash, cond::ByKey, a, (B, evec)::Tuple, multi::typeof(identity)) = get(B, get_actual_keyfunc(first(cond.keyfuncs))(a), evec)
 # two methods with the same body, for resolver disambiguation
-findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::typeof(first)) = let
+findmatchix(::Mode.Hash, cond::ByKey, a, (B, evec)::Tuple, multi::typeof(first)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
-    haskey(B, k) ? [B[k]] : Vector{valtype(B)}()
+    b = get(B, k, nothing)
+    isnothing(b) ? evec : [b]
 end
-findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::typeof(last)) = let
+findmatchix(::Mode.Hash, cond::ByKey, a, (B, evec)::Tuple, multi::typeof(last)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
-    haskey(B, k) ? [B[k]] : Vector{valtype(B)}()
+    b = get(B, k, nothing)
+    isnothing(b) ? evec : [b]
 end
