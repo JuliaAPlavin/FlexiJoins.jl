@@ -6,6 +6,20 @@ struct ByDistance{TFL, TFR, TD, TP <: Union{typeof.((<, <=))...}} <: JoinConditi
     max::Float64
 end
 
+"""
+    by_distance(f, dist, pred)
+    by_distance(f_L, f_R, dist, pred)
+
+Join condition with `left`-`right` matches defined by `pred(dist(f_L(left), f_R(left)))`.
+All distances from `Distances.jl` are supported as `dist.`
+
+# Examples
+
+```
+by_distance(:time, Euclidean(), <=(3))
+by_distance(:time, x -> minimum(x.times), Euclidean(), <=(3))
+```
+"""
 by_distance(func, dist, maxpred::Base.Fix2) = ByDistance(func, func, dist, maxpred.f, Float64(maxpred.x))
 by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(func_L, func_R, dist, maxpred.f, Float64(maxpred.x))
 

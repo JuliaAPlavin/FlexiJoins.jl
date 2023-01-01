@@ -25,13 +25,32 @@ include("bypredicate.jl")
 include("normalize_specs.jl")
 include("ix_compute.jl")
 
+_commondoc = """
+Join two datasets, `A` and `B`, by the `by` condition.
+"""
 
+
+"""    innerjoin((;A, B), by; [nonmatches=drop], [multi], [groupby], [cardinality=(*, *)])
+$_commondoc
+"""
 innerjoin(args...; kwargs...) = flexijoin(args...; kwargs...)
+"""    leftjoin((;A, B), by; [nonmatches=(keep, drop)], [multi], [groupby], [cardinality=(*, *)])
+$_commondoc
+"""
 leftjoin(datas, args...; kwargs...) = flexijoin(datas, args...; nonmatches=ntuple(i -> i == 1 ? keep : drop, length(datas)), kwargs...)
+"""    rightjoin((;A, B), by; [nonmatches=(drop, keep)], [multi], [groupby], [cardinality=(*, *)])
+$_commondoc
+"""
 rightjoin(datas, args...; kwargs...) = flexijoin(datas, args...; nonmatches=ntuple(i -> i == 1 ? drop : keep, length(datas)), kwargs...)
+"""    outerjoin((;A, B), by; [nonmatches=keep], [multi], [groupby], [cardinality=(*, *)])
+$_commondoc
+"""
 outerjoin(datas, args...; kwargs...) = flexijoin(datas, args...; nonmatches=ntuple(i -> keep, length(datas)), kwargs...)
 
 
+"""    flexijoin((;A, B), by; [nonmatches=drop], [multi], [groupby], [cardinality=(*, *)])
+$_commondoc
+"""
 function flexijoin(datas, cond; kwargs...)
 	IXs = joinindices(datas, cond; kwargs...)
     myview(datas, IXs)
