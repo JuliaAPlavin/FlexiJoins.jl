@@ -16,7 +16,8 @@ end
 supports_mode(mode, cond, datas) = false
 supports_mode(::Mode.Sort, cond, datas) = supports_mode(Mode.SortChain(), cond, datas)
 
-best_mode(cond, datas) =
+choose_mode(mode, cond, datas) = supports_mode(mode, cond, datas) ? mode : nothing
+choose_mode(mode::Nothing, cond, datas) =
     supports_mode(Mode.Hash(), cond, datas) ? Mode.Hash() :
     supports_mode(Mode.Tree(), cond, datas) ? Mode.Tree() :
     supports_mode(Mode.Sort(), cond, datas) ? Mode.Sort() :

@@ -80,11 +80,9 @@ function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=no
 end
 
 function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode)
-    mode = if !isnothing(mode)
-        mode
-    elseif !isnothing(best_mode(cond, datas))
-        best_mode(cond, datas)
-    elseif !isnothing(best_mode(swap_sides(cond), swap_sides(datas)))
+    mode = if !isnothing(choose_mode(mode, cond, datas))
+        choose_mode(mode, cond, datas)
+    elseif !isnothing(choose_mode(mode, swap_sides(cond), swap_sides(datas)))
         return _joinindices(
             swap_sides(datas),
             swap_sides(cond),
@@ -92,7 +90,7 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
             swap_sides(nonmatches),
             swap_sides(groupby),
             swap_sides(cardinality),
-            best_mode(swap_sides(cond), swap_sides(datas)),
+            choose_mode(mode, swap_sides(cond), swap_sides(datas)),
         ) |> swap_sides
     else
         error("No known mode supported by $cond")
