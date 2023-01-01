@@ -18,6 +18,7 @@ export
 include("nothingindex.jl")
 include("conditions.jl")
 include("bykey.jl")
+include("bydistance.jl")
 include("bypredicate.jl")
 include("normalize_specs.jl")
 include("ix_compute.jl")

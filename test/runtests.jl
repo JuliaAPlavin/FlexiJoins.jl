@@ -3,6 +3,7 @@ using FlexiJoins: NothingIndex, normalize_arg, ByKey, Mode
 using StructArrays, TypedTables
 using Dictionaries: dictionary
 using IntervalSets
+using Distances
 using Test
 
 
@@ -68,9 +69,11 @@ end
 @testset "join modes" begin
     @testset for (cond, modes) in [
             (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
+            (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_key(@optic(_.obj)) & by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
         ]
         test_modes(modes, (;O=objects, M=measurements), cond)
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,))
