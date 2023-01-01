@@ -16,6 +16,14 @@ best_mode(cond, datas) =
     error("No known mode supported by $cond")
 
 
+function optimize(::Mode.Sort, which, datas, cond::JoinCondition, multi)
+    X = which(datas)
+    (X, sortperm(X; by=sort_byf(which, cond)))
+end
+
+findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(identity)) = searchsorted_matchix(cond, a, B, perm) |> collect
+
+
 struct CompositeCondition{TC} <: JoinCondition
     conds::TC
 end
@@ -33,6 +41,13 @@ supports_mode(mode::Mode.NestedLoop, cond::CompositeCondition, datas) = all(c ->
 supports_mode(mode::Mode.SortChain, cond::CompositeCondition, datas) = all(c -> supports_mode(mode, c, datas), cond.conds)
 supports_mode(mode::Mode.Sort, cond::CompositeCondition, datas) =
     all(c -> supports_mode(Mode.SortChain(), c, datas), cond.conds[1:end-1]) && supports_mode(mode, last(cond.conds), datas)
+
+sort_byf(which, cond::CompositeCondition) = x -> map(c -> sort_byf(which, c)(x), cond.conds)
+
+function searchsorted_matchix(cond::CompositeCondition, a, B, perm)
+    perm = searchsorted_matchix(cond.conds[1], a, B, perm)
+    perm = searchsorted_matchix(cond.conds[2], a, B, perm)
+end
 
 
 

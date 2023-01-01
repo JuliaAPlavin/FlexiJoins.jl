@@ -56,3 +56,11 @@ findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::Union{typeof(first), ty
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     haskey(B, k) ? [B[k]] : Vector{valtype(B)}()
 end
+
+
+sort_byf(which, cond::ByKey) = get_actual_keyfunc(which(cond.keyfuncs))
+searchsorted_matchix(cond::ByKey, a, B, perm) =
+    @view perm[searchsorted(
+        mapview(i -> get_actual_keyfunc(last(cond.keyfuncs))(B[i]), perm),
+        get_actual_keyfunc(first(cond.keyfuncs))(a)
+    )]
