@@ -18,6 +18,11 @@ normalize_arg(::Nothing, datas; default) = map(Returns(default), datas) |> value
 
 normalize_arg(x, datas; default) = map(Returns(x), datas) |> values
 
+normalize_arg(x::Tuple, datas::NamedTuple; default) = let
+	@assert length(x) == length(datas)
+	x
+end
+
 normalize_arg(x::NamedTuple{N, <:Tuple{Any}}, datas::NamedTuple{NS}; default) where {N, NS} = let
 	@assert only(N) ∈ NS
 	ix = findfirst(==(only(N)), NS)
