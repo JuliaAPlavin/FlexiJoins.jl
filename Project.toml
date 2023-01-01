@@ -1,0 +1,6 @@
+name = "FlexiJoins"
+uuid = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
+authors = ["Alexander Plavin <alexander@plav.in>"]
+version = "0.1.0"
+
+[deps]
