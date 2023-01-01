@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.5
+# v0.19.8
 
 using Markdown
 using InteractiveUtils
@@ -67,7 +67,7 @@ end
 function autotimed(f; mintime=0.05)
 	f()
 	T = @timed f()
-	T.time > mintime && return (; T.time, T.gctime, T.bytes, nallocs=T.gcstats.poolalloc / 1, T.value)
+	T.time > mintime && return (; T.time, T.gctime, T.bytes, nallocs=Base.gc_alloc_count(T.gcstats) / 1, T.value)
 	n = 1
 	while true
 		n *= clamp(mintime / T.time, 1.2, 100)
@@ -77,7 +77,7 @@ function autotimed(f; mintime=0.05)
 			end
 			f()
 		end
-		T.time > mintime && return (; time=T.time / n, gctime=T.gctime / n, bytes=T.bytes ÷ n, nallocs=T.gcstats.poolalloc / n, T.value)
+		T.time > mintime && return (; time=T.time / n, gctime=T.gctime / n, bytes=T.bytes ÷ n, nallocs=Base.gc_alloc_count(T.gcstats) / n, T.value)
 	end
 end
 
@@ -113,9 +113,10 @@ end
 let
 	df = @p times |> rowtable |> map((;_.join, _.by, _.N, _.M, var"N + M"=_.N+_.M, maxNM=max(_.N, _.M), gcfrac=_.value.gctime / _.value.time, _.value...))
 	ch = altChart(df)
-	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:join), alt.StrokeDash(:by)).mark_line() |
-		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:join), alt.StrokeDash(:by)).mark_line() |
-		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:nallocs, scale=alt.Scale(type=:log)), alt.Color(:join), alt.StrokeDash(:by)).mark_line()
+	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Color(:join), alt.StrokeDash(:by)).mark_line()
+	ch = ch.encode(alt.Y(:time, scale=alt.Scale(type=:log))) |
+		ch.encode(alt.Y(:bytes, scale=alt.Scale(type=:log))) |
+		ch.encode(alt.Y(:nallocs, scale=alt.Scale(type=:log)))
 	altVLSpec(ch)
 end
 
@@ -124,9 +125,11 @@ times_flexi = map(grid(N=10 .^ (0:5), M=10 .^ (0:5), cond=[
 	:key_1 → LR -> @p(flexijoin(LR, by_key(@o(_.name))) |> count(_.R.value > -10000)),
 	:key_2 → LR -> @p(flexijoin(LR, by_key((@o(_.name), @o(_.value)))) |> count(_.R.value > -10000)),
 	:key_gr → LR -> @p(flexijoin(LR, by_key(@o(_.name)); groupby=:L) |> sum(count(r -> r.value > -10000, _.R); init=0)),
-	:pred → LR -> @p(flexijoin(LR, by_pred(@o(_.value), <, @o(_.value)); multi=(R=closest,)) |> count(_.R.value > -10000)),
+	:pred_le → LR -> @p(flexijoin(LR, by_pred(@o(_.value), <, @o(_.value)); multi=(R=closest,)) |> count(_.R.value > -10000)),
+	:pred_in → LR -> @p(flexijoin(LR, by_pred(@o(_.value), ∈, x -> (x.value, x.value))) |> count(_.R.value > -10000)),
 	:dist → LR -> @p(flexijoin(LR, by_distance(@o(_.value), Euclidean(), <=(10)); multi=(R=closest,)) |> count(_.R.value > -10000)),
 	:multi → LR -> @p(flexijoin(LR, by_key(@o(_.name)) & by_pred(@o(_.value), <, @o(_.value)); multi=(R=closest,)) |> count(_.R.value > -10000)),
+	:notsame → LR -> @p(flexijoin(length(LR.L) < length(LR.R) ? (;LR.L, R=LR.L) : (;LR.R, L=LR.R), by_key(@o(_.name)) & not_same()) |> count(_.R.value > -10000)),
 ])) do p
 	LR = generate_data(p.N, p.M)
 	timed = autotimed(() -> p.cond(LR))
@@ -137,9 +140,10 @@ end;
 let
 	df = @p times_flexi |> rowtable |> map((;_.cond, _.N, _.M, var"N + M"=_.N+_.M, maxNM=max(_.N, _.M), gcfrac=_.value.gctime / _.value.time, _.value...))
 	ch = altChart(df)
-	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line() |
-		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line() |
-		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:nallocs, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line()
+	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line()
+	ch = ch.encode(alt.Y(:time, scale=alt.Scale(type=:log))) |
+		ch.encode(alt.Y(:bytes, scale=alt.Scale(type=:log))) |
+		ch.encode(alt.Y(:nallocs, scale=alt.Scale(type=:log)))
 	altVLSpec(ch)
 end
 
@@ -178,7 +182,7 @@ Tables = "~1.7.0"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.0-beta3"
+julia_version = "1.8.0-rc1"
 manifest_format = "2.0"
 project_hash = "c917ef09fd09d5064fc8ff0c4bf439b1154e7bee"
 
@@ -396,7 +400,7 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 deps = ["Accessors", "ArraysOfArrays", "DataAPI", "DataPipes", "Indexing", "IntervalSets", "MicroCollections", "NearestNeighbors", "SplitApplyCombine", "Static", "StructArrays"]
 path = "../../home/aplavin/.julia/dev/FlexiJoins"
 uuid = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
-version = "0.1.10"
+version = "0.1.14"
 
 [[deps.Formatting]]
 deps = ["Printf"]
@@ -833,7 +837,7 @@ version = "1.3.0"
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
-version = "1.2.12+1"
+version = "1.2.12+3"
 
 [[deps.ZygoteRules]]
 deps = ["MacroTools"]
@@ -854,7 +858,7 @@ version = "1.41.0+1"
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
-version = "16.2.1+1"
+version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
