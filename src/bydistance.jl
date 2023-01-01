@@ -63,7 +63,7 @@ wrap_matrix(X::Vector{<:AbstractFloat}) = reshape(X, (1, :))
 wrap_matrix(X::Vector{<:Integer}) = wrap_matrix(map(float, X))
 
 wrap_vector(X::AbstractVector{<:Number}) = X
-wrap_vector(X::Number) = vec1(X)
+wrap_vector(X::Number) = MaybeVector{typeof(X)}(X)
 
 
 Base.show(io::IO, c::ByDistance) = print(io, "by_distance(", c.dist, '(', c.func_L, ", ", c.func_R, ") ", c.pred, ' ', c.max, ")")
