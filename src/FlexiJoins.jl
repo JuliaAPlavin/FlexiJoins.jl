@@ -13,7 +13,7 @@ import NearestNeighbors as NN
 export
     flexijoin, joinindices, @optic,
     by_key, by_distance, by_pred,
-    keep, drop
+    keep, drop, closest
 
 
 include("nothingindex.jl")

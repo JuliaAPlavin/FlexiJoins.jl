@@ -1,4 +1,9 @@
+struct Closest end
+const closest = Closest()
+
+
 abstract type JoinCondition end
+
 
 module Mode
 struct Hash end
@@ -33,7 +38,10 @@ function prepare_for_join(::Mode.Sort, which, datas, cond::JoinCondition, multi)
     (X, sortperm(X; by=sort_byf(which, cond)))
 end
 
-findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(identity)) = searchsorted_matchix(cond, a, B, perm) |> collect  # sort to keep same order?
+findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(identity)) =
+    searchsorted_matchix(cond, a, B, perm) |> collect  # sort to keep same order?
+findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(closest)) =
+    searchsorted_matchix_closest(cond, a, B, perm)
 
 
 struct CompositeCondition{TC} <: JoinCondition

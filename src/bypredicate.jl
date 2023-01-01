@@ -39,6 +39,11 @@ searchsorted_matchix(cond::ByPred{typeof(>=)}, a, B, perm) =
 searchsorted_matchix(cond::ByPred{typeof(>)}, a, B, perm) =
     @view perm[begin:searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) - 1]
 
+searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(<), typeof(<=)}}, a, B, perm) =
+    first(searchsorted_matchix(cond, a, B, perm), 1)
+searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(>), typeof(>=)}}, a, B, perm) =
+    last(searchsorted_matchix(cond, a, B, perm), 1)
+
 function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
     rng = cond.Lf(a)
     @assert rng isa Interval

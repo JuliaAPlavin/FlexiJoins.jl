@@ -1,5 +1,3 @@
-function closest end
-
 struct ByDistance{TFL, TFR, TD, TP <: Union{typeof.((<, <=))...}} <: JoinCondition
     func_L::TFL
     func_R::TFR
@@ -13,7 +11,7 @@ by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(func_L, func_
 
 normalize_arg(cond::ByDistance, datas) = cond
 
-supports_mode(::Mode.NestedLoop, ::ByKey, datas) = true
+supports_mode(::Mode.NestedLoop, ::ByDistance, datas) = true
 is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by.max)
 
 
@@ -37,8 +35,10 @@ function prepare_for_join(::Mode.Tree, which, datas, cond::ByDistance, multi)
 end
 findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::typeof(identity)) =
     NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
-findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::typeof(closest)) =
-    NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
+function findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::Closest)
+    idxs, dists = NN.knn(tree, wrap_vector(cond.func_L(a)), 1)
+    cond.pred(only(dists), cond.max) ? idxs : empty(idxs)
+end
 
 wrap_matrix(X::Vector{<:AbstractVector}) = X
 wrap_matrix(X::Vector{<:AbstractFloat}) = reshape(X, (1, :))
