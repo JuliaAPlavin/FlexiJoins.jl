@@ -347,6 +347,17 @@ end
             @test_throws AssertionError joinindices(OM, by_key(:abc); cache)
             @test_throws AssertionError joinindices(OM, cond; multi=first_M ? (O=first,) : (M=first,), cache)
             @test_throws AssertionError joinindices(OM, cond; mode=Mode.NestedLoop(), cache)
+
+            if !first_M
+                cache = join_cache()
+                @test isnothing(cache.prepared)
+                test_unique_setequal(joinindices(OM, cond; cache, loop_over_side=:O), base)
+                @test !isnothing(cache.prepared)
+                test_unique_setequal(joinindices((;O=copy(objects), M=measurements), cond; cache, loop_over_side=:O), base)
+                @test_throws AssertionError joinindices((;O=objects, M=copy(measurements)), cond; cache, loop_over_side=:O)
+                @test_throws AssertionError joinindices((;O=copy(objects), M=copy(measurements)), cond; cache, loop_over_side=:O)
+                @test_throws r"AssertionError: cache\.params|No known mode supported" joinindices(OM, cond; cache, loop_over_side=:M)
+            end
         end
 
         test_modes(modes, OM, cond; multi=first_M ? (O=first,) : (M=first,), kwargs...)
