@@ -32,6 +32,10 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     JI = joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)))
     @test parentindices(J.O) == (JI.O,)
     @test parentindices(J.M) == (JI.M,)
+    J = flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(M=keep,))
+    JI = joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(M=keep,))
+    @test parentindices(J.O) == (JI.O,)
+    @test parentindices(J.M) == (JI.M,)
 
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(O=keep,)) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=3, M=nothing), (O=4, M=nothing)]
@@ -161,23 +165,32 @@ end
 
 @testset "types" begin
     @testset "container" begin
-        J = flexijoin((;O=objects, M=measurements), by_key(:obj))
+        J = innerjoin((;O=objects, M=measurements), by_key(:obj))
         @test J isa StructArray
-        @test J.O isa FlexiJoins.SentinelView
-        @test J.M isa FlexiJoins.SentinelView
+        @test J.O isa SubArray
+        @test J.M isa SubArray
         Jm = FlexiJoins.materialize_views(J)
         @test Jm isa StructArray
         @test Jm.O isa Vector{<:NamedTuple}
         @test Jm.M isa Vector{<:NamedTuple}
 
-        J = flexijoin((;O=objects, M=measurements), by_key(:obj); groupby=:O)
+        J = innerjoin((;O=objects, M=measurements), by_key(:obj); groupby=:O)
         @test J isa StructArray
-        @test J.O isa FlexiJoins.SentinelView
-        @test J.M isa Vector{<:FlexiJoins.SentinelView}
+        @test J.O isa SubArray
+        @test J.M isa Vector{<:SubArray}
         Jm = FlexiJoins.materialize_views(J)
         @test Jm isa StructArray
         @test Jm.O isa Vector{<:NamedTuple}
         @test Jm.M isa Vector{<:Vector}
+
+        J = leftjoin((;O=objects, M=measurements), by_key(:obj))
+        @test J isa StructArray
+        @test J.O isa SubArray
+        @test J.M isa FlexiJoins.SentinelView
+        Jm = FlexiJoins.materialize_views(J)
+        @test Jm isa StructArray
+        @test Jm.O isa Vector{<:NamedTuple}
+        @test Jm.M isa Vector{<:Union{Nothing, NamedTuple}}
     end
 
     @testset "eltype" begin

@@ -4,21 +4,30 @@ struct SentinelView{T, N, A, I, TS} <: AbstractArray{T, N}
     sentinel::TS
 end
 
-function SentinelView(a, indices, sentinel)
-    @assert !(typeof(sentinel) <: keytype(a))
+function SentinelView(A, I, sentinel)
+    @assert !(sentinel isa keytype(A))
     SentinelView{
-        if eltype(indices) <: keytype(a)
-            valtype(a)
-        elseif eltype(indices) <: Union{keytype(a), typeof(sentinel)}
-            Union{valtype(a), typeof(sentinel)}
+        if eltype(I) <: keytype(A)
+            valtype(A)
+        elseif eltype(I) <: Union{keytype(A), typeof(sentinel)}
+            Union{valtype(A), typeof(sentinel)}
         else
             error()
         end,
-        ndims(indices),
-        typeof(a),
-        typeof(indices),
+        ndims(I),
+        typeof(A),
+        typeof(I),
         typeof(sentinel)
-    }(a, indices, sentinel)
+    }(A, I, sentinel)
+end
+
+function sentinel_view(A, I, sentinel)
+    @assert !(sentinel isa keytype(A))
+    if A isa AbstractArray && eltype(I) <: keytype(A)
+        view(A, I)
+    else
+        SentinelView(A, I, sentinel)
+    end
 end
 
 Base.IndexStyle(::Type{SentinelView{T, N, A, I}}) where {T, N, A, I} = IndexStyle(I)
@@ -33,11 +42,13 @@ end
 Base.parent(a::SentinelView) = a.parent
 Base.parentindices(a::SentinelView) = (a.indices,)
 
+const VIEWTYPES = Union{SubArray, SentinelView}
 
-myview(A, I::AbstractArray) = SentinelView(A, I, nothing)
-myview(A::SentinelView, I::AbstractArray) = myview(parent(A), only(parentindices(A))[I])
-myview(A::SentinelView, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
-myview(A,               Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
+
+myview(A, I::AbstractArray) = sentinel_view(A, I, nothing)
+myview(A::VIEWTYPES, I::AbstractArray) = myview(parent(A), only(parentindices(A))[I])
+myview(A::VIEWTYPES, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
+myview(A,            Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
 myview(A::NamedTuple{NS}, I::StructArray{<:NamedTuple}) where {NS} =
     if :_ ∈ NS
         merge(
@@ -63,8 +74,8 @@ myview(A::Tuple, I::StructArray{<:Tuple}) =
 
 
 materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
-materialize_views(A::SentinelView) = collect(A)
-materialize_views(A::Vector{<:SentinelView}) = map(materialize_views, A)
+materialize_views(A::VIEWTYPES) = collect(A)
+materialize_views(A::Vector{<:VIEWTYPES}) = map(materialize_views, A)
 materialize_views(A) = A
 
 
