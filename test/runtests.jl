@@ -54,6 +54,11 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
         [(O=(obj="A", value=2), M=[(obj="A", time=8), (obj="A", time=12), (obj="A", time=16), (obj="A", time=20)]), (O=(obj="B", value=-5), M=[(obj="B", time=2)]), (O=(obj="D", value=1), M=[]), (O=(obj="E", value=9), M=[]), (O=nothing, M=[(obj="C", time=6), (obj="C", time=9), (obj="C", time=12)])]
     )
+    test_unique_setequal(
+        joinindices((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3))),
+        joinindices((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+    )
+
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); cardinality=(O=1, M=1)) |> materialize_views
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
 end
@@ -69,7 +74,7 @@ end
 @testset "join modes" begin
     @testset for (cond, modes) in [
             (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
-            (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()]),
             (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),

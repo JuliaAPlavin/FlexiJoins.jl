@@ -7,6 +7,7 @@ using DataPipes
 using Indexing
 using SplitApplyCombine: mapview
 using IntervalSets
+import NearestNeighbors as NN
 
 
 export

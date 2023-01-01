@@ -57,7 +57,12 @@ function prepare_for_join(::Mode.Hash, which, datas, cond::ByKey, multi::Union{t
 end
 
 findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::typeof(identity)) = get(B, get_actual_keyfunc(first(cond.keyfuncs))(a), valtype(B)())
-findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::Union{typeof(first), typeof(last)}) = let
+# two methods with the same body, for resolver disambiguation
+findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::typeof(first)) = let
+    k = get_actual_keyfunc(first(cond.keyfuncs))(a)
+    haskey(B, k) ? [B[k]] : Vector{valtype(B)}()
+end
+findmatchix(::Mode.Hash, cond::ByKey, a, B::Dict, multi::typeof(last)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     haskey(B, k) ? [B[k]] : Vector{valtype(B)}()
 end

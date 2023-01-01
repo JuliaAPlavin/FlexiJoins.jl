@@ -28,3 +28,21 @@ function searchsorted_matchix(cond::ByDistance, a, B, perm)
     P = @view perm[searchsortedfirst(arr, val - cond.max):searchsortedlast(arr, val + cond.max)]
     return filter(i -> is_match(cond, a, B[i]), P)
 end
+
+
+supports_mode(::Mode.Tree, ::ByDistance, datas) = true
+function prepare_for_join(::Mode.Tree, which, datas, cond::ByDistance, multi)
+    X = which(datas)
+    (X, NN.BallTree(map(which((cond.func_L, cond.func_R)), X) |> wrap_matrix, cond.dist))
+end
+findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::typeof(identity)) =
+    NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
+findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::typeof(closest)) =
+    NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
+
+wrap_matrix(X::Vector{<:AbstractVector}) = X
+wrap_matrix(X::Vector{<:AbstractFloat}) = reshape(X, (1, :))
+wrap_matrix(X::Vector{<:Integer}) = wrap_matrix(map(float, X))
+
+wrap_vector(X::Vector{<:Number}) = X
+wrap_vector(X::Number) = [X]
