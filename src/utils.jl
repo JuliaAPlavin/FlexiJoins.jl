@@ -75,7 +75,8 @@ myview(A::Tuple, I::StructArray{<:Tuple}) =
 
 materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
 materialize_views(A::VIEWTYPES) = collect(A)
-materialize_views(A::Vector{<:VIEWTYPES}) = map(materialize_views, A)
+materialize_views(A::AbstractArray{<:VIEWTYPES}) = map(materialize_views, A)
+materialize_views(A::AbstractArray{<:StructArray}) = map(materialize_views, A)
 materialize_views(A) = A
 
 

@@ -165,32 +165,72 @@ end
 
 @testset "types" begin
     @testset "container" begin
-        J = innerjoin((;O=objects, M=measurements), by_key(:obj))
-        @test J isa StructArray
-        @test J.O isa SubArray
-        @test J.M isa SubArray
-        Jm = FlexiJoins.materialize_views(J)
-        @test Jm isa StructArray
-        @test Jm.O isa Vector{<:NamedTuple}
-        @test Jm.M isa Vector{<:NamedTuple}
+        @testset "basic" begin
+            J = innerjoin((;O=objects, M=measurements), by_key(:obj))
+            @test J isa StructArray
+            @test J.O isa SubArray
+            @test J.M isa SubArray
+            Jm = FlexiJoins.materialize_views(J)
+            @test Jm isa StructArray
+            @test Jm.O isa Vector{<:NamedTuple}
+            @test Jm.M isa Vector{<:NamedTuple}
+        end
 
-        J = innerjoin((;O=objects, M=measurements), by_key(:obj); groupby=:O)
-        @test J isa StructArray
-        @test J.O isa SubArray
-        @test J.M isa Vector{<:SubArray}
-        Jm = FlexiJoins.materialize_views(J)
-        @test Jm isa StructArray
-        @test Jm.O isa Vector{<:NamedTuple}
-        @test Jm.M isa Vector{<:Vector}
+        @testset "grouped" begin
+            J = innerjoin((;O=objects, M=measurements), by_key(:obj); groupby=:O)
+            @test J isa StructArray
+            @test J.O isa SubArray
+            @test J.M isa Vector{<:SubArray}
+            Jm = FlexiJoins.materialize_views(J)
+            @test Jm isa StructArray
+            @test Jm.O isa Vector{<:NamedTuple}
+            @test Jm.M isa Vector{<:Vector}
+        end
 
-        J = leftjoin((;O=objects, M=measurements), by_key(:obj))
-        @test J isa StructArray
-        @test J.O isa SubArray
-        @test J.M isa FlexiJoins.SentinelView
-        Jm = FlexiJoins.materialize_views(J)
-        @test Jm isa StructArray
-        @test Jm.O isa Vector{<:NamedTuple}
-        @test Jm.M isa Vector{<:Union{Nothing, NamedTuple}}
+        @testset "sentinel" begin
+            J = leftjoin((;O=objects, M=measurements), by_key(:obj))
+            @test J isa StructArray
+            @test J.O isa SubArray
+            @test J.M isa FlexiJoins.SentinelView
+            Jm = FlexiJoins.materialize_views(J)
+            @test Jm isa StructArray
+            @test Jm.O isa Vector{<:NamedTuple}
+            @test Jm.M isa Vector{<:Union{Nothing, NamedTuple}}
+        end
+
+        @testset "structarray" begin
+            J = innerjoin((O=StructArray(objects), M=StructArray(measurements)), by_key(:obj))
+            @test J isa StructArray
+            @test J.O isa StructArray
+            @test J.M isa StructArray
+            @test J.O.obj isa SubArray
+            @test J.M.obj isa SubArray
+
+            Jm = FlexiJoins.materialize_views(J)
+            @test Jm isa StructArray
+            @test Jm.O isa StructArray
+            @test Jm.M isa StructArray
+            @test Jm.O.obj isa Vector{String}
+            @test Jm.M.obj isa Vector{String}
+        end
+
+        @testset "structarray grouped" begin
+            J = innerjoin((O=StructArray(objects), M=StructArray(measurements)), by_key(:obj); groupby=:O)
+            @test J isa StructArray
+            @test J.O isa StructArray
+            @test J.M isa Vector  # can be a view?..
+            @test J.O.obj isa SubArray
+            @test J.M[1] isa StructArray
+            @test J.M[1].obj isa SubArray
+
+            Jm = FlexiJoins.materialize_views(J)
+            @test Jm isa StructArray
+            @test Jm.O isa StructArray
+            @test Jm.M isa Vector
+            @test Jm.O.obj isa Vector{String}
+            @test Jm.M[1] isa StructArray
+            @test Jm.M[1].obj isa Vector{String}
+        end
     end
 
     @testset "eltype" begin
