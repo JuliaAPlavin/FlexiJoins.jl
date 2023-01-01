@@ -8,6 +8,7 @@ Base.show(io::IO, x::Drop) = write(io, "drop")
 
 
 normalize_groupby(x::Nothing, datas) = x
+normalize_groupby(x::Integer, datas::Tuple) = StaticInt(x)
 normalize_groupby(x::Symbol, datas::NamedTuple{NS}) where {NS} = StaticInt(findfirst(==(x), NS))
 
 normalize_arg(::Nothing, datas; default) = map(Returns(default), datas) |> values

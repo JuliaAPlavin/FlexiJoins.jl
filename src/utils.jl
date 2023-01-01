@@ -4,11 +4,12 @@ struct SentinelView{T, N, A, I, TS} <: AbstractArray{T, N}
     sentinel::TS
 end
 
-SentinelView(a, indices, sentinel) =
+function SentinelView(a, indices, sentinel)
+    @assert !(typeof(sentinel) <: keytype(a))
     SentinelView{
         if eltype(indices) <: keytype(a)
             eltype(a)
-        elseif eltype(indices) <: Union{typeof(sentinel), keytype(a)}
+        elseif eltype(indices) <: Union{keytype(a), typeof(sentinel)}
             Union{eltype(a), typeof(sentinel)}
         else
             error()
@@ -18,6 +19,7 @@ SentinelView(a, indices, sentinel) =
         typeof(indices),
         typeof(sentinel)
     }(a, indices, sentinel)
+end
 
 Base.IndexStyle(::Type{SentinelView{T, N, A, I}}) where {T, N, A, I} = IndexStyle(I)
 Base.axes(a::SentinelView) = axes(a.indices)

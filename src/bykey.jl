@@ -44,16 +44,35 @@ supports_mode(::Mode.Hash, ::ByKey, datas) = true
 
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
     keyfunc = get_actual_keyfunc(last(cond.keyfuncs))
-    dct = Dict{
-        typeof(keyfunc(first(X))),
-        Vector{eltype(keys(X))}
-    }()
-    for (i, x) in pairs(X)
-        vec = get!(() -> fill(i, 1), dct, keyfunc(x))
-        last(vec) == i || push!(vec, i)
+
+    ngroups = 0
+    groups = similar(X, Int)
+    dct = Dict{typeof(keyfunc(first(X))), Int}()
+    @inbounds for (i, x) in pairs(X)
+        k = keyfunc(x)
+        group_id = get!(dct, k, ngroups + 1)
+        if group_id == ngroups + 1
+            ngroups += 1
+            groups[i] = ngroups
+        else
+            groups[i] = group_id
+        end
     end
-    evec = valtype(dct)()
-    return (dct, evec)
+
+    starts = zeros(Int, ngroups)
+    rperm = Vector{keytype(X)}(undef, length(X))
+    @inbounds for gix in groups
+        starts[gix] += 1
+    end
+    cumsum!(starts, starts)
+
+    @inbounds for (i, gix) in pairs(groups)
+        rperm[starts[gix]] = i
+        starts[gix] -= 1
+    end
+    push!(starts, length(groups))
+
+    return (dct, starts, rperm)
 end
 
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first), typeof(last)})
@@ -69,7 +88,12 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first
     return dct
 end
 
-findmatchix(::Mode.Hash, cond::ByKey, a, (B, evec)::Tuple, multi::typeof(identity)) = get(B, get_actual_keyfunc(first(cond.keyfuncs))(a), evec)
+@inbounds function findmatchix(::Mode.Hash, cond::ByKey, a, (dct, starts, rperm)::Tuple, multi::typeof(identity))
+    group_id = get(dct, get_actual_keyfunc(first(cond.keyfuncs))(a), -1)
+    group_id == -1 ?
+        @view(rperm[1:1:0]) :
+        @view(rperm[starts[group_id + 1]:-1:1 + starts[group_id]])
+end
 # two methods with the same body, for resolver disambiguation
 findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(first)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
