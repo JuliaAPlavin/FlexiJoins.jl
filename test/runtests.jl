@@ -62,6 +62,8 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         [(O=1, M=5), (O=3, M=5), (O=4, M=7)]
     @test joinindices((;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=6), (O=2, M=5), (O=3, M=5), (O=4, M=2)]
+    @test joinindices((;O=objects, M=measurements), by_key(:obj) & by_pred(:value, <, :time); multi=(M=closest,)) ==
+        [(O=1, M=1), (O=2, M=5)]
 
     @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); cardinality=(O=1, M=1)) |> materialize_views
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)

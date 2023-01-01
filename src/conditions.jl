@@ -66,3 +66,9 @@ searchsorted_matchix(cond::CompositeCondition, a, B, perm) =
     foldl(cond.conds; init=perm) do P, c
         searchsorted_matchix(c, a, B, P)
     end
+
+searchsorted_matchix_closest(cond::CompositeCondition, a, B, perm) =
+    @p  foldl(Base.front(cond.conds); init=perm) do P, c
+            searchsorted_matchix(c, a, B, P)
+        end |>
+        searchsorted_matchix_closest(last(cond.conds), a, B, __)
