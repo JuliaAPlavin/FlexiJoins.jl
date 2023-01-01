@@ -26,10 +26,12 @@ normalize_arg(cond::ByKey{<:Tuple{Any}}, datas::Union{Tuple, NamedTuple}) = ByKe
 normalize_arg(cond::ByKey{<:Tuple}, datas::Union{Tuple, NamedTuple}) = (@assert length(cond.keyfuncs) == length(datas); ByKey(cond.keyfuncs))
 
 
+# nested loop implementation
 supports_mode(::Mode.NestedLoop, ::ByKey, datas) = true
 is_match(by::ByKey, a, b) = first(by.keyfuncs)(a) == last(by.keyfuncs)(b)
 
 
+# Sort implementation
 supports_mode(::Mode.SortChain, ::ByKey, datas) = true
 sort_byf(cond::ByKey) = last(cond.keyfuncs)
 @inbounds searchsorted_matchix(cond::ByKey, a, B, perm) =
@@ -39,8 +41,10 @@ sort_byf(cond::ByKey) = last(cond.keyfuncs)
     )]
 
 
+# Hash implementation
 supports_mode(::Mode.Hash, ::ByKey, datas) = true
 
+# return all matches, multi=identity
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
     keyfunc = last(cond.keyfuncs)
 
@@ -71,6 +75,14 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
     return (dct, starts, rperm)
 end
 
+@inbounds function findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, (dct, starts, rperm)::Tuple, multi::typeof(identity))
+    group_id = get(dct, first(cond.keyfuncs)(a), -1)
+    group_id == -1 ?
+        @view(rperm[1:1:0]) :
+        @view(rperm[starts[group_id + 1]:-1:1 + starts[group_id]])
+end
+
+# first/last match only
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first), typeof(last)})
     keyfunc = last(cond.keyfuncs)
     dct = Dict{
@@ -84,17 +96,11 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first
     return dct
 end
 
-@inbounds function findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, (dct, starts, rperm)::Tuple, multi::typeof(identity))
-    group_id = get(dct, first(cond.keyfuncs)(a), -1)
-    group_id == -1 ?
-        @view(rperm[1:1:0]) :
-        @view(rperm[starts[group_id + 1]:-1:1 + starts[group_id]])
-end
-
 findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::Union{typeof(first), typeof(last)}) = let
     b = get(B, first(cond.keyfuncs)(a), nothing)
     isnothing(b) ? MaybeVector{valtype(B)}() : MaybeVector{valtype(B)}(b)
 end
+
 
 
 function Base.show(io::IO, c::ByKey)
