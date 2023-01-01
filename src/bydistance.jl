@@ -22,7 +22,7 @@ findmatchix(::Mode.NestedLoop, cond::ByDistance, a, B, multi::Closest) =
 
 supports_mode(::Mode.Sort, ::ByDistance, datas) = true
 function sort_byf(cond::ByDistance)
-    @warn "Joining by distance using componentwise sorting, this doesn't work for all distance types" cond.dist
+    cond.dist isa NN.MinkowskiMetric || @warn "Joining by distance using componentwise sorting, this doesn't work for all distance types" cond.dist
     x -> first(cond.func_R(x))
 end
 function searchsorted_matchix(cond::ByDistance, a, B, perm)
