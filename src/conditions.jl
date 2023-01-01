@@ -64,7 +64,7 @@ supports_mode(mode::Mode.Sort, cond::CompositeCondition, datas) =
 
 sort_byf(which, cond::CompositeCondition) = x -> map(c -> sort_byf(which, c)(x), cond.conds)
 
-function searchsorted_matchix(cond::CompositeCondition, a, B, perm)
-    perm = searchsorted_matchix(cond.conds[1], a, B, perm)
-    perm = searchsorted_matchix(cond.conds[2], a, B, perm)
-end
+searchsorted_matchix(cond::CompositeCondition, a, B, perm) =
+    foldl(cond.conds; init=perm) do P, c
+        searchsorted_matchix(c, a, B, P)
+    end
