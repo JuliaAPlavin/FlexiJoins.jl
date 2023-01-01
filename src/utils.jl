@@ -1,5 +1,8 @@
 const VIEWTYPES = Union{SubArray, SentinelView}
 
+materialize_views(A::AbstractArray) = map(materialize_views, A)
+materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
+materialize_views(A) = A
 
 myview(A, I::AbstractArray) = sentinelview(A, I, nothing)
 myview(A::VIEWTYPES, I::AbstractArray) = myview(parent(A), only(parentindices(A))[I])

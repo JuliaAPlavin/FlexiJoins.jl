@@ -188,20 +188,20 @@ end
 
         J2 = innerjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
         J3 = innerjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
-        @test map(:O, J2.J) == J3.O
-        @test map(:M1, J2.J) == J3.M1
+        @test J2.J.O == J3.O
+        @test J2.J.M1 == J3.M1
         @test J2.M2 == J3.M2
 
         J4 = innerjoin((_=J1, __=StructArray(measurements)), by_key(:obj ∘ :O, :obj))
-        @test map(:O, J2.J) == J4.O
-        @test map(:M1, J2.J) == J4.M1
-        @test map(:obj, J2.M2) == J4.obj
-        @test map(:time, J2.M2) == J4.time
+        @test J2.J.O == J4.O
+        @test J2.J.M1 == J4.M1
+        @test map(x -> x.obj, J2.M2) == J4.obj
+        @test map(x -> x.time, J2.M2) == J4.time
 
         J2 = innerjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj); groupby=:M2)
         J3 = innerjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj); groupby=:M2)
-        @test map(r -> map(:O, r), J2.J) == J3.O
-        @test map(r -> map(:M1, r), J2.J) == J3.M1
+        @test map(r -> r.O, J2.J) == J3.O
+        @test map(r -> r.M1, J2.J) == J3.M1
         @test J2.M2 == J3.M2
     end
 
@@ -209,8 +209,8 @@ end
         J1 = innerjoin((O=objects, M1=measurements), by_key(:obj); groupby=:O)
         J2 = innerjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
         J3 = innerjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
-        @test map(:O, J2.J) == J3.O
-        @test map(:M1, J2.J) == J3.M1
+        @test J2.J.O == J3.O
+        @test J2.J.M1 == J3.M1
         @test J2.M2 == J3.M2
     end
 end
