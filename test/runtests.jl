@@ -209,13 +209,13 @@ end
     joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0:4, M=0:1))
 end
 
-function test_modes(modes, args...; kwargs...)
+function test_modes(modes, args...; alloc=true, kwargs...)
     base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
     @testset for mode in [nothing; modes]
         cur = joinindices(args...; kwargs..., mode)
         test_unique_setequal(cur, base)
 
-        if mode != Mode.NestedLoop() && all(!isempty, args[1])
+        if alloc && mode != Mode.NestedLoop() && all(!isempty, args[1])
             LR = map(X -> repeat(X, 200), args[1])
             cond = args[2]
             joinindices(LR, Base.tail(args)...; kwargs..., mode)
@@ -257,6 +257,8 @@ end
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,))
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=keep)
 
+        first_M = cond isa FlexiJoins.ByPred{typeof(∈)}  # the ∈ condition only supports a single "direction"
+
         base = joinindices((;O=objects, M=measurements), cond)
         cache = join_cache()
         @test isnothing(cache.prepared)
@@ -266,17 +268,18 @@ end
         @test !isnothing(cache.prepared)
         @test_throws AssertionError joinindices((;O=copy(objects), M=copy(measurements)), cond; cache)
         @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:abc); cache)
-        @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; multi=(M=first,), cache)
+        @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,), cache)
         @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; mode=Mode.NestedLoop(), cache)
 
-        # fails when join sides need to be swapped, i.e. by_pred(∈):
-        # test_modes(modes, (;O=objects, M=measurements), cond; multi=(M=first,))
+        test_modes(modes, (;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,))
         # order within groups may differ, so tests fail:
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O)
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O, nonmatches=keep)
     end
     test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
     test_modes([Mode.NestedLoop(), Mode.Sort()], (;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,))
+    test_modes([Mode.NestedLoop(), Mode.Hash()], (measurements, measurements), by_key(:obj) & not_same(); alloc=false)
+    test_modes([Mode.NestedLoop(), Mode.NestedLoopFast()], (measurements, measurements), not_same(); alloc=false)
 end
 
 @testset "normalize_arg" begin

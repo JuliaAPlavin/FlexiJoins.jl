@@ -35,8 +35,8 @@ normalize_arg(cond::ByDistance, datas) = cond
 
 supports_mode(::Mode.NestedLoop, ::ByDistance, datas) = true
 is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by.max)
-findmatchix(mode::Mode.NestedLoop, cond::ByDistance, a, B, multi::Closest) =
-    @p findmatchix(mode, cond, a, B, identity) |>
+findmatchix_wix(mode::Mode.NestedLoop, cond::ByDistance, ix_a, a, B, multi::Closest) =
+    @p findmatchix_wix(mode, cond, ix_a, a, B, identity) |>
         firstn_by!(by=i -> cond.dist(cond.func_L(a), cond.func_R(B[i])))
 
 
@@ -59,9 +59,9 @@ searchsorted_matchix_closest(cond::ByDistance, a, B, perm) =
 supports_mode(::Mode.Tree, ::ByDistance, datas) = true
 prepare_for_join(::Mode.Tree, X, cond::ByDistance) =
     (X, (cond.dist isa NN.MinkowskiMetric ? NN.KDTree : NN.BallTree)(map(cond.func_R, X) |> wrap_matrix, cond.dist))
-findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::typeof(identity)) =
+findmatchix_wix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree)::Tuple, multi::typeof(identity)) =
     NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
-function findmatchix(::Mode.Tree, cond::ByDistance, a, (B, tree)::Tuple, multi::Closest)
+function findmatchix_wix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree)::Tuple, multi::Closest)
     idxs, dists = NN.knn(tree, wrap_vector(cond.func_L(a)), 1)
     cond.pred(only(dists), cond.max) ? idxs : empty!(idxs)
 end

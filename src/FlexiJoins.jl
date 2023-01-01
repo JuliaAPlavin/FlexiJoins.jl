@@ -107,6 +107,7 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
     end
 
     mode = choose_mode(mode, cond, datas)
+    isnothing(mode) && error("No known mode supported by $cond")
 	IXs = create_ix_array(datas, nonmatches, groupby)
 	fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, cache)
 end
