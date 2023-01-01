@@ -28,13 +28,21 @@ preferred_first_side(datas, cond, ::Mode.Hash) = length(datas[1]) < length(datas
 preferred_first_side(datas, cond, ::Mode.Tree) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
 
 
+normalize_keyfunc(x::Tuple) = let
+    funcs = map(normalize_keyfunc, x)
+    arg -> map(f -> f(arg), funcs)
+end
+normalize_keyfunc(x) = x
+normalize_keyfunc(x::Symbol) = Accessors.PropertyLens{x}()
+
+
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propagate_empty(minimum, findmatchix(mode, cond, a, B_prep, identity))
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
 
 
 prepare_for_join(::Mode.NestedLoop, X, cond::JoinCondition) = X
 function findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity))
-    res = eltype(keys(B))[]
+    res = keytype(B)[]
     for (i, b) in pairs(B)
         if is_match(cond, a, b)
             push!(res, i)

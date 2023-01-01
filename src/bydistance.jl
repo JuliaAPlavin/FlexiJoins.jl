@@ -28,8 +28,8 @@ by_distance(:time, Euclidean(), <=(3))
 by_distance(:time, x -> minimum(x.times), Euclidean(), <=(3))
 ```
 """
-by_distance(func, dist, maxpred::Base.Fix2) = ByDistance(func, func, dist, maxpred.f, Float64(maxpred.x))
-by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(func_L, func_R, dist, maxpred.f, Float64(maxpred.x))
+by_distance(func, dist, maxpred::Base.Fix2) = by_distance(func, func, dist, maxpred)
+by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(normalize_keyfunc(func_L), normalize_keyfunc(func_R), dist, maxpred.f, Float64(maxpred.x))
 
 normalize_arg(cond::ByDistance, datas) = cond
 

@@ -60,11 +60,11 @@ end
 
 
 create_ix_array(datas, nonmatches, groupby::Nothing) = map(datas, reverse(nonmatches)) do X, nms
-    empty_ix_vector(eltype(keys(X)), nms, Val(false))
+    empty_ix_vector(keytype(X), nms, Val(false))
 end |> StructArray
 
 create_ix_array(datas, nonmatches, groupby::StaticInt) = map(ntuple(identity, length(datas)), datas, reverse(nonmatches)) do i, X, nms
-    empty_ix_vector(eltype(keys(X)), nms, Val(i != known(groupby)))
+    empty_ix_vector(keytype(X), nms, Val(i != known(groupby)))
 end |> StructArray
 
 empty_ix_vector(ix_T, nms::typeof(drop), group::Val{false}) = Vector{ix_T}()

@@ -24,7 +24,7 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         [(O=(obj="A", value=2), M=(obj="A", time=8)), (O=(obj="A", value=2), M=(obj="A", time=12)), (O=(obj="A", value=2), M=(obj="A", time=16)), (O=(obj="A", value=2), M=(obj="A", time=20)), (O=(obj="B", value=-5), M=(obj="B", time=2))]
     @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj))) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5)]
-    @test joinindices((;O=objects, M=[(name=x.obj,) for x in measurements]), by_key((O=@optic(_.obj), M=@optic(_.name)))) ==
+    @test joinindices((;O=objects, M=[(name=x.obj,) for x in measurements]), by_key(O=@optic(_.obj), M=@optic(_.name))) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5)]
 
     J = flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)))
@@ -74,6 +74,10 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
     test_unique_setequal(
         joinindices((;M=measurements, O=objects), by_distance(:time, :value, Euclidean(), <=(3))),
         joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value-3)..(x.value+3))),
+    )
+    test_unique_setequal(
+        joinindices((objects, measurements), by_distance(:value, :time, Euclidean(), <=(1))),
+        joinindices((objects, measurements), by_pred(x -> (x.value, x.value+1, x.value-1), ∋, :time)),
     )
     @test_broken isempty(joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value+3)..(x.value-3))))
     test_unique_setequal(
@@ -133,13 +137,17 @@ end
 @testset "join modes" begin
     @testset for (cond, modes) in [
             (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
+            (by_key(x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()]),
             (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()]),
-            (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()]),
+            (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
+            (by_pred(:obj, ==, x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()]),
             (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, <=, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, >, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, >=, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_pred(:value, ∈, x -> (x.time, x.time + 5, x.time + 10)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
             (by_pred(:value, ∈, x -> x.time..(x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, ∈, x -> Interval{:open,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, ∈, x -> Interval{:closed,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
@@ -148,6 +156,9 @@ end
             (by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort()]),
         ]
         test_modes(modes, (;O=objects, M=measurements), cond)
+        test_modes(modes, (;O=objects[1:0], M=measurements), cond)
+        test_modes(modes, (;O=objects, M=measurements[1:0]), cond)
+        test_modes(modes, (;O=objects[1:0], M=measurements[1:0]), cond)
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,))
         test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=keep)
 
@@ -174,11 +185,11 @@ end
 end
 
 @testset "normalize_arg" begin
-    @test normalize_arg(by_key(@optic(_.obj)), (A=[], B=[])) == ByKey(((@optic(_.obj),), (@optic(_.obj),)))
-    @test normalize_arg(by_key(:obj), (A=[], B=[])) == ByKey(((@optic(_.obj),), (@optic(_.obj),)))
-    @test normalize_arg(by_key(:obj), ([], [])) == ByKey(((@optic(_.obj),), (@optic(_.obj),)))
-    @test normalize_arg(by_key((:obj, @optic(_.name))), ([], [])) == ByKey(((@optic(_.obj), @optic(_.name)), (@optic(_.obj), @optic(_.name))))
-    @test normalize_arg(by_key((A=@optic(_.name), B=:obj)), (A=[], B=[])) == ByKey(((@optic(_.name),), (@optic(_.obj),)))
+    @test normalize_arg(by_key(@optic(_.obj)), (A=[], B=[])) == ByKey((@optic(_.obj), @optic(_.obj)))
+    @test normalize_arg(by_key(:obj), (A=[], B=[])) == ByKey((@optic(_.obj), @optic(_.obj)))
+    @test normalize_arg(by_key(:obj), ([], [])) == ByKey((@optic(_.obj), @optic(_.obj)))
+    @test normalize_arg(by_key(:obj, @optic(_.name)), ([], [])) == ByKey((@optic(_.obj), @optic(_.name)))
+    @test normalize_arg(by_key(A=@optic(_.name), B=:obj), (A=[], B=[])) == ByKey((@optic(_.name), @optic(_.obj)))
 end
 
 @testset "other types" begin
@@ -217,8 +228,8 @@ end
 end
 
 @testset "show" begin
-    @test string(by_key((:a, :b)) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3))) ==
-        "by_key((:a, :b)) & by_key(key) & by_pred(id < id1) & by_distance(Euclidean(0.0)(time, time) <= 3.0)"
+    @test string(by_key(@optic(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3))) ==
+        "by_key((@optic _[12]) ∘ (@optic _.a), (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0)"
 end
 
 
