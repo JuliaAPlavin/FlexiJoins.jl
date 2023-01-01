@@ -69,7 +69,7 @@ end
 
 function test_modes(modes, args...; kwargs...)
     base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
-    @testset for mode in modes
+    @testset for mode in [nothing; modes]
         cur = joinindices(args...; kwargs..., mode)
         test_unique_setequal(cur, base)
     end
@@ -81,6 +81,9 @@ end
             (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()]),
             (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_pred(:value, <=, :time), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_pred(:value, >, :time), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_pred(:value, >=, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
             (by_key(@optic(_.obj)) & by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
             (by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort()]),
@@ -93,6 +96,8 @@ end
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O)
         # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O, nonmatches=keep)
     end
+    test_modes([Mode.NestedLoop(), Mode.Sort()], (;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
+    test_modes([Mode.NestedLoop(), Mode.Sort()], (;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,))
 end
 
 @testset "normalize_arg" begin

@@ -13,6 +13,11 @@ normalize_arg(cond::ByDistance, datas) = cond
 
 supports_mode(::Mode.NestedLoop, ::ByDistance, datas) = true
 is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by.max)
+findmatchix(::Mode.NestedLoop, cond::ByDistance, a, B, multi::Closest) =
+    @p B |>
+        findall(b -> is_match(cond, a, b)) |>
+        sort(by=i -> cond.dist(cond.func_L(a), cond.func_R(B[i]))) |>
+        first(__, 1)
 
 
 supports_mode(::Mode.Sort, ::ByDistance, datas) = true
@@ -26,6 +31,10 @@ function searchsorted_matchix(cond::ByDistance, a, B, perm)
     P = @view perm[searchsortedfirst(arr, val - cond.max):searchsortedlast(arr, val + cond.max)]
     return filter(i -> is_match(cond, a, B[i]), P)
 end
+searchsorted_matchix_closest(cond::ByDistance, a, B, perm) =
+    @p searchsorted_matchix(cond, a, B, perm) |>
+        sort(by=i -> cond.dist(cond.func_L(a), cond.func_R(B[i]))) |>
+        first(__, 1)
 
 
 supports_mode(::Mode.Tree, ::ByDistance, datas) = true
