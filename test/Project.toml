@@ -1,6 +1,7 @@
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CompatHelperLocal = "5224ae11-6099-4aaa-941d-3aab004bd678"
+DataPipes = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
 Dictionaries = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
@@ -13,6 +14,7 @@ TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 [compat]
 Aqua = "0.5.4"
 CompatHelperLocal = "0.1.23"
+DataPipes = "0.2.11"
 Dictionaries = "0.3.21"
 Distances = "0.10.7"
 IntervalSets = "0.6, 0.7"

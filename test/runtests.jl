@@ -6,6 +6,7 @@ using OffsetArrays
 using Dictionaries: dictionary
 using IntervalSets
 using Distances
+using DataPipes
 using Test
 
 
@@ -98,6 +99,15 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         [(O=1, M=1), (O=2, M=5)]
 
     @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+end
+
+@testset "not_same" begin
+    @test_throws Exception joinindices((M1=copy(measurements), M2=measurements), by_key(:obj) & not_same())
+    LR = (M1=measurements, M2=measurements)
+    @test joinindices(LR, by_key(:obj) & not_same()) ==
+       @p joinindices(LR, by_key(:obj)) |> filter(_.M1 != _.M2)
+    @test joinindices(LR, by_key(:obj) & not_same(order_matters=false)) ==
+       @p joinindices(LR, by_key(:obj)) |> filter(_.M1 < _.M2)
 end
 
 @testset "unnested" begin

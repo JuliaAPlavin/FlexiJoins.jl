@@ -16,7 +16,7 @@ using ArraysOfArrays: VectorOfVectors
 export
     innerjoin, leftjoin, rightjoin, outerjoin,
     flexijoin, joinindices, materialize_views, @optic,
-    by_key, by_distance, by_pred,
+    by_key, by_distance, by_pred, not_same,
     keep, drop, closest,
     join_cache
 
@@ -29,6 +29,7 @@ include("prepare_cache.jl")
 include("bykey.jl")
 include("bydistance.jl")
 include("bypredicate.jl")
+include("bysame.jl")
 include("ix_compute.jl")
 
 

@@ -11,6 +11,7 @@ struct SortChain end
 struct Sort end
 struct Tree end
 struct NestedLoop end
+struct NestedLoopFast end
 end
 
 supports_mode(mode, cond, datas) = false
@@ -21,6 +22,7 @@ choose_mode(mode::Nothing, cond, datas) =
     supports_mode(Mode.Hash(), cond, datas) ? Mode.Hash() :
     supports_mode(Mode.Tree(), cond, datas) ? Mode.Tree() :
     supports_mode(Mode.Sort(), cond, datas) ? Mode.Sort() :
+    supports_mode(Mode.NestedLoopFast(), cond, datas) ? Mode.NestedLoopFast() :
     nothing
 
 preferred_first_side(datas, cond, ::Mode.Sort) = length(datas[1]) > length(datas[2]) ? StaticInt(2) : StaticInt(1)
@@ -37,6 +39,7 @@ normalize_keyfunc(x) = x
 normalize_keyfunc(x::Symbol) = Accessors.PropertyLens{x}()
 
 
+findmatchix_wix(mode, cond::JoinCondition, ix_1, x_1, B_prep, multi) = findmatchix(mode, cond, x_1, B_prep, multi)
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propagate_empty(minimum, findmatchix(mode, cond, a, B_prep, identity))
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
 
@@ -83,8 +86,17 @@ normalize_arg(cond::CompositeCondition, datas) = CompositeCondition(map(c -> nor
 
 supports_mode(mode::Mode.NestedLoop, cond::CompositeCondition, datas) = all(c -> supports_mode(mode, c, datas), cond.conds)
 supports_mode(mode::Mode.SortChain, cond::CompositeCondition, datas) = all(c -> supports_mode(mode, c, datas), cond.conds)
+supports_mode(mode::Mode.Hash, cond::CompositeCondition, datas) = supports_mode(mode, first(cond.conds), datas) && all(c -> supports_mode(Mode.NestedLoopFast(), c, datas), Base.tail(cond.conds))
 supports_mode(mode::Mode.Sort, cond::CompositeCondition, datas) =
     all(c -> supports_mode(Mode.SortChain(), c, datas), cond.conds[1:end-1]) && supports_mode(mode, last(cond.conds), datas)
+
+
+prepare_for_join(mode::Mode.Hash, X, cond::CompositeCondition, multi) = prepare_for_join(mode, X, first(cond.conds), multi)
+
+findmatchix_wix(mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) =
+    @p findmatchix(mode, first(cond.conds), a, X, multi) |>
+        filter(is_match_ix(last(cond.conds), ix_a, _))
+
 
 sort_byf(cond::CompositeCondition) = x -> map(c -> sort_byf(c)(x), cond.conds)
 

@@ -6,7 +6,7 @@ end
 function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
 	ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
 	@inbounds for (ix_1, x_1) in pairs(first(datas))
-        IX_2 = findmatchix(mode, cond, x_1, last_optimized, last(multi))
+        IX_2 = findmatchix_wix(mode, cond, ix_1, x_1, last_optimized, last(multi))
         add_to_cnt!(ix_seen_cnts[1], ix_1, length(IX_2), cardinality[1])
 		@assert cardinality_ok(length(IX_2), cardinality[2])
 		for i in eachindex(IX_2)
