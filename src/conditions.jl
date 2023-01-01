@@ -20,6 +20,7 @@ prepare_for_join(::Mode.NestedLoop, which, datas, cond::JoinCondition, multi) = 
 findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi) = propagate_empty(multi, findall(b -> is_match(cond, a, b), B))
 propagate_empty(func::typeof(identity), arr) = arr
 propagate_empty(func::Union{typeof.((first, last))...}, arr) = func(arr, 1)
+propagate_empty(func::Union{typeof.((minimum, maximum))...}, arr) = isempty(arr) ? arr : [func(arr)]
 
 
 function prepare_for_join(::Mode.Sort, which, datas, cond::JoinCondition, multi)
@@ -27,7 +28,9 @@ function prepare_for_join(::Mode.Sort, which, datas, cond::JoinCondition, multi)
     (X, sortperm(X; by=sort_byf(which, cond)))
 end
 
-findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi) = propagate_empty(multi, searchsorted_matchix(cond, a, B, perm)) |> collect
+findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(identity)) = searchsorted_matchix(cond, a, B, perm) |> collect  # sort to keep same order?
+findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(first)) = propagate_empty(minimum, searchsorted_matchix(cond, a, B, perm))
+findmatchix(::Mode.Sort, cond::JoinCondition, a, (B, perm)::Tuple, multi::typeof(last)) = propagate_empty(maximum, searchsorted_matchix(cond, a, B, perm))
 
 
 struct CompositeCondition{TC} <: JoinCondition

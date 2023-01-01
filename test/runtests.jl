@@ -2,6 +2,7 @@ using FlexiJoins
 using FlexiJoins: NothingIndex, normalize_arg, ByKey, Mode
 using StructArrays, TypedTables
 using Dictionaries: dictionary
+using IntervalSets
 using Test
 
 
@@ -58,18 +59,27 @@ end
 
 function test_modes(modes, args...; kwargs...)
     base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
-    for mode in modes
-        @test joinindices(args...; kwargs..., mode) == base
+    @testset for mode in modes
+        cur = joinindices(args...; kwargs..., mode)
+        test_unique_setequal(cur, base)
     end
 end
 
 @testset "join modes" begin
-    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)))
-    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(O=keep,))
-    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=keep)
-    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,))
-    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O)
-    test_modes([Mode.Sort(), Mode.Hash()], (;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep)
+    @testset for (cond, modes) in [
+            (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
+            (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
+        ]
+        test_modes(modes, (;O=objects, M=measurements), cond)
+        test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,))
+        test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=keep)
+        test_modes(modes, (;O=objects, M=measurements), cond; multi=(M=first,))
+        # order within groups may differ, so tests fail:
+        # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O)
+        # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O, nonmatches=keep)
+    end
 end
 
 @testset "normalize_arg" begin
