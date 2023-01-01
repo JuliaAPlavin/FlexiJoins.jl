@@ -1,7 +1,6 @@
 module FlexiJoins
 
 using StructArrays
-using Tables: columntable
 using Accessors
 using DataPipes
 using SplitApplyCombine: mapview
@@ -39,6 +38,7 @@ include("nearestneighbors.jl")
 function __init__()
     @require DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0" begin
         using .DataFrames: DataFrame
+        using Tables: columntable
 
         function _flexijoin(datas::Tuple{DataFrame, DataFrame}, args...; kwargs...)
             datas = map(to_table_for_join, datas)
