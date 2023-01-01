@@ -18,7 +18,10 @@ is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by
 
 
 supports_mode(::Mode.Sort, ::ByDistance, datas) = true
-sort_byf(which, cond::ByDistance) = x -> first(which((cond.func_L, cond.func_R))(x))
+function sort_byf(which, cond::ByDistance)
+    @warn "Joining by distance using componentwise sorting, this doesn't work for all distance types" cond.dist
+    x -> first(which((cond.func_L, cond.func_R))(x))
+end
 function searchsorted_matchix(cond::ByDistance, a, B, perm)
     arr = mapview(i -> first(cond.func_R(B[i])), perm)
     val = cond.func_L(a)
