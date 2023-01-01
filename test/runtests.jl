@@ -75,6 +75,10 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         joinindices((;M=measurements, O=objects), by_distance(:time, :value, Euclidean(), <=(3))),
         joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value-3)..(x.value+3))),
     )
+    test_unique_setequal(
+        joinindices((objects, measurements), by_distance(:value, :time, Euclidean(), <=(1))),
+        joinindices((objects, measurements), by_pred(x -> (x.value, x.value+1, x.value-1), ∋, :time)),
+    )
     @test_broken isempty(joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value+3)..(x.value-3))))
     test_unique_setequal(
         rightjoin((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3))),
@@ -134,12 +138,13 @@ end
     @testset for (cond, modes) in [
             (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
             (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()]),
-            (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
             (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, <=, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, >, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, >=, :time), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()]),
+            (by_pred(:value, ∈, x -> (x.time, x.time + 5, x.time + 10)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]),
             (by_pred(:value, ∈, x -> x.time..(x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, ∈, x -> Interval{:open,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),
             (by_pred(:value, ∈, x -> Interval{:closed,:open}(x.time, x.time + 10)), [Mode.NestedLoop(), Mode.Sort()]),

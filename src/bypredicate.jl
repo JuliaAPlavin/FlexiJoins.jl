@@ -36,8 +36,21 @@ findmatchix(mode::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >)).
     @p findmatchix(mode, cond, a, B, identity) |>
         firstn_by!(by=i -> abs(cond.Lf(a) - cond.Rf(B[i])))
 
+supports_mode(::Mode.Hash, ::ByPred{typeof(==)}, datas) = true
+supports_mode(::Mode.Hash, cond::ByPred{typeof(∋)}, datas) = Base.isiterable(Core.Compiler.return_type(cond.Lf, Tuple{eltype(datas[1])}))
 supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
 supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
+
+
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, ByKey((nothing, (cond.Rf,))), multi)
+findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, a, Bdata, multi) = findmatchix(mode, ByKey(((cond.Lf,), nothing)), a, Bdata, multi)
+
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, ByKey((nothing, (cond.Rf,))), multi)
+findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, a, Bdata, multi::typeof(identity)) =
+    mapreduce(vcat, cond.Lf(a)) do aa
+        findmatchix(mode, ByKey(((identity,), nothing)), aa, Bdata, multi)
+    end
+
 
 sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
 
@@ -62,16 +75,16 @@ sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}) = cond.Rf
     @view searchsorted_matchix(cond, a, B, perm)[max(begin, end):end]
 
 @inbounds function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
-    int = cond.Lf(a)
-    @assert int isa Interval
     arr = mapview(i -> cond.Rf(B[i]), perm)
-    @view perm[searchsorted_interval(arr, int)]
+    @view perm[searchsorted_in(arr, cond.Lf(a))]
 end
 
-searchsorted_interval(arr, int::Interval{:closed, :closed}) = searchsortedfirst(arr, minimum(int)):searchsortedlast(arr, maximum(int))
-searchsorted_interval(arr, int::Interval{:closed,   :open}) = searchsortedfirst(arr, minimum(int)):(searchsortedfirst(arr, supremum(int)) - 1)
-searchsorted_interval(arr, int::Interval{  :open, :closed}) = (searchsortedlast(arr, infimum(int)) + 1):searchsortedlast(arr, maximum(int))
-searchsorted_interval(arr, int::Interval{  :open,   :open}) = (searchsortedlast(arr, infimum(int)) + 1):(searchsortedfirst(arr, supremum(int)) - 1)
+searchsorted_in(A, X) = mapreduce(x -> searchsorted(A, x), vcat, X)
+
+searchsorted_in(arr, int::Interval{:closed, :closed}) = searchsortedfirst(arr, minimum(int)):searchsortedlast(arr, maximum(int))
+searchsorted_in(arr, int::Interval{:closed,   :open}) = searchsortedfirst(arr, minimum(int)):(searchsortedfirst(arr, supremum(int)) - 1)
+searchsorted_in(arr, int::Interval{  :open, :closed}) = (searchsortedlast(arr, infimum(int)) + 1):searchsortedlast(arr, maximum(int))
+searchsorted_in(arr, int::Interval{  :open,   :open}) = (searchsortedlast(arr, infimum(int)) + 1):(searchsortedfirst(arr, supremum(int)) - 1)
 
 
 Base.show(io::IO, c::ByPred) = print(io, "by_pred(", c.Lf, ' ', c.pred, ' ', c.Rf, ")")
