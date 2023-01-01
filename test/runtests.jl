@@ -298,7 +298,7 @@ end
 
 @testset "show" begin
     @test string(by_key(@optic(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3)) & not_same()) ==
-        "by_key((@optic _[12]) ∘ (@optic _.a) == (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0) & not_same(order_matters=true)"
+        "by_key((@optic _.a[12]) == (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0) & not_same(order_matters=true)"
 end
 
 function test_modes(modes, args...; alloc=true, kwargs...)
