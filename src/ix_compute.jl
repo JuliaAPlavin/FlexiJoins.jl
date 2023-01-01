@@ -1,24 +1,24 @@
 function fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, cache)
     last_optimized = prepare_for_join(cache, mode, last(datas), cond, last(multi))
-	fill_ix_array_!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, last_optimized)
+    _fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, last_optimized)
 end
 
-function fill_ix_array_!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
-	ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
+function _fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Union{Nothing, StaticInt{1}}, cardinality, last_optimized)
+    ix_seen_cnts = create_cnts(datas, nonmatches, cardinality)
     cnt = Ref(0)
-	@inbounds for (ix_1, x_1) in pairs(first(datas))
+    @inbounds for (ix_1, x_1) in pairs(first(datas))
         IX_2 = findmatchix(mode, cond, ix_1, x_1, last_optimized, last(multi))
         cnt[] = 0
         foreach_inbounds(IX_2) do ix_2
             cnt[] += 1
-            add_to_cnt!(ix_seen_cnts[2], ix_2, true, cardinality[2])
+            add_to_cnt!(last(ix_seen_cnts), ix_2, true, first(cardinality))  # note that cardinality is reversed
         end
-        add_to_cnt!(ix_seen_cnts[1], ix_1, cnt[], cardinality[1])
-		@assert cardinality_ok(cnt[], cardinality[2])
+        add_to_cnt!(first(ix_seen_cnts), ix_1, cnt[], last(cardinality))  # note that cardinality is reversed
+        @assert cardinality_ok(cnt[], last(cardinality))  # cnt[] is the final count, so it must be within the cardinality; add_to_cnt! should only check that cnt <= cardinality
         append_matchix!(IXs, (ix_1, IX_2), first(nonmatches), groupby)
-	end
-    @assert all(cnt -> cardinality_ok(cnt, cardinality[2]), ix_seen_cnts[2])
-	append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
+    end
+    @assert all(cnt -> cardinality_ok(cnt, first(cardinality)), last(ix_seen_cnts))  # note that cardinality is reversed
+    append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 
 append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing) = 
@@ -42,15 +42,12 @@ function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), t
     IXs
 end
 
-function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::StaticInt{1})
-    # these nonmatches are already appended
-    IXs
-end
+# these nonmatches are already appended
+append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::StaticInt{1}) = IXs
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(keep)}, groupby::StaticInt{1})
     IX_2 = @p ix_seen_cnts[2] |> findall(==(0))
     push!(IXs, NoConvert((nothing, IX_2)))
-    IXs
 end
 
 append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(drop), typeof(drop)}, groupby) = IXs
@@ -74,9 +71,3 @@ empty_ix_vector(ix_T, nms::typeof(only), group::Val{false}) = Vector{Nothing}()
 empty_ix_vector(ix_T, nms::typeof(drop), group::Val{true}) = VectorOfVectors{ix_T}()
 empty_ix_vector(ix_T, nms::typeof(keep), group::Val{true}) = VectorOfVectors{ix_T}()
 empty_ix_vector(ix_T, nms::typeof(only), group::Val{true}) = Vector{EmptyVector{ix_T, Vector}}()
-
-# workaround for https://github.com/JuliaArrays/StructArrays.jl/issues/228
-struct NoConvert{T}
-    value::T
-end
-StructArrays.maybe_convert_elt(::Type{T}, vals::NoConvert) where {T} = vals.value

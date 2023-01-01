@@ -6,13 +6,7 @@ struct ByDistance{TFL, TFR, TD, TP <: Union{typeof.((<, <=))...}} <: JoinConditi
     max::Float64
 end
 
-swap_sides(c::ByDistance) = ByDistance(
-    c.func_R,
-    c.func_L,
-    c.dist,
-    c.pred,
-    c.max
-)
+swap_sides(c::ByDistance) = ByDistance(c.func_R, c.func_L, c.dist, c.pred, c.max)
 
 """
     by_distance(f, dist, pred)
@@ -30,8 +24,6 @@ by_distance(:time, x -> minimum(x.times), Euclidean(), <=(3))
 """
 by_distance(func, dist, maxpred::Base.Fix2) = by_distance(func, func, dist, maxpred)
 by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(normalize_keyfunc(func_L), normalize_keyfunc(func_R), dist, maxpred.f, Float64(maxpred.x))
-
-normalize_arg(cond::ByDistance, datas) = cond
 
 supports_mode(::Mode.NestedLoop, ::ByDistance, datas) = true
 is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by.max)

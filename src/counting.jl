@@ -4,10 +4,10 @@ cardinality_ok(cnt::Integer, ::typeof(*)) = true
 cardinality_ok(cnt::Nothing, ::typeof(*)) = true
 cardinality_ok(cnt::Integer, ::typeof(+)) = cnt > 0
 
-create_cnts(datas, nonmatches, cardinality) = ntuple(2) do i
+create_cnts(datas, nonmatches, cardinality) = Base.Cartesian.@ntuple 2 i -> let
     T = min_cnt_type_promote(
         min_cnt_type_nonmatches(nonmatches[i]),
-        min_cnt_type_cardinality(cardinality[i]),
+        min_cnt_type_cardinality(cardinality[3 - i]), # 3 - i because cardinality is reversed
     )
     map(Returns(create_zero(T)), datas[i])
 end

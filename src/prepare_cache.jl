@@ -3,9 +3,9 @@ prepare_for_join(mode, X, cond::JoinCondition, multi) = prepare_for_join(mode, X
 
 
 mutable struct JoinCache
-    params
+    params::Union{Nothing, NamedTuple{(:mode, :cond, :multi, :Xid)}}
     prepared
-    rlock
+    rlock::ReentrantLock
 end
 
 join_cache() = JoinCache(nothing, nothing, ReentrantLock())
