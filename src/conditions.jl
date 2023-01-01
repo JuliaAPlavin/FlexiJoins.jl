@@ -28,7 +28,7 @@ findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propag
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propagate_empty(maximum, findmatchix(mode, cond, a, B_prep, identity))
 
 prepare_for_join(::Mode.NestedLoop, X, cond::JoinCondition, multi) = X
-findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity)) = findall(b -> is_match(cond, a, b), B)
+findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity)) = findall(map(b -> is_match(cond, a, b), B))
 propagate_empty(func::typeof(identity), arr) = arr
 propagate_empty(func::Union{typeof.((first, last))...}, arr) = func(arr, 1)
 propagate_empty(func::Union{typeof.((minimum, maximum))...}, arr) = isempty(arr) ? arr : [func(arr)]
