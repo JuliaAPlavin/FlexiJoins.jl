@@ -27,10 +27,6 @@ by_pred(:time, ∈, :time_range)
 """
 by_pred(Lf, pred, Rf) = ByPred(Lf, Rf, pred)
 
-innerfunc(f::ComposedFunction) = innerfunc(f.inner)
-innerfunc(f) = f
-stripinner(f::ComposedFunction) = f.inner isa ComposedFunction ? f.outer ∘ stripinner(f.inner) : f.outer
-
 normalize_arg(cond::ByPred, datas) = (@assert length(datas) == 2; cond)
 
 

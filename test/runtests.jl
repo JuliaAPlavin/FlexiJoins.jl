@@ -1,6 +1,7 @@
 using FlexiJoins
 using FlexiJoins: normalize_arg, ByKey, Mode
 using StructArrays, TypedTables
+using StaticArrays
 using Dictionaries: dictionary
 using IntervalSets
 using Distances
@@ -64,6 +65,10 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         joinindices((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
     )
     test_unique_setequal(
+        joinindices((;O=objects, M=measurements), by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3))),
+        joinindices((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+    )
+    test_unique_setequal(
         joinindices((;M=measurements, O=objects), by_distance(:time, :value, Euclidean(), <=(3))),
         joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value-3)..(x.value+3))),
     )
@@ -80,6 +85,8 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         [(O=1, M=5), (O=3, M=5), (O=4, M=7)]
     @test joinindices((;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=6), (O=2, M=5), (O=3, M=5), (O=4, M=2)]
+    @test joinindices((;O=objects, M=measurements), by_pred(:value, >, :time); multi=(M=closest,)) ==
+        [(O = 4, M = 1)]
     @test joinindices((;O=objects, M=measurements), by_key(:obj) & by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=1), (O=2, M=5)]
 
