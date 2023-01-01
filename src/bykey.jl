@@ -76,7 +76,7 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first
     keyfunc = get_actual_keyfunc(last(cond.keyfuncs))
     dct = Dict{
         typeof(keyfunc(first(X))),
-        eltype(keys(X))
+        keytype(X)
     }()
     for (i, x) in pairs(X)
         multi === first && get!(dct, keyfunc(x), i)
@@ -95,13 +95,13 @@ end
 findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(first)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     b = get(B, k, nothing)
-    T = _valtype(B)
+    T = valtype(B)
     isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
 end
 findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(last)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     b = get(B, k, nothing)
-    T = _valtype(B)
+    T = valtype(B)
     isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
 end
 

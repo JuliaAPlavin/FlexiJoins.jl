@@ -37,7 +37,7 @@ findmatchix(mode::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >)).
         firstn_by!(by=i -> abs(cond.Lf(a) - cond.Rf(B[i])))
 
 supports_mode(::Mode.Hash, ::ByPred{typeof(==)}, datas) = true
-supports_mode(::Mode.Hash, cond::ByPred{typeof(∋)}, datas) = Base.isiterable(Core.Compiler.return_type(cond.Lf, Tuple{eltype(datas[1])}))
+supports_mode(::Mode.Hash, cond::ByPred{typeof(∋)}, datas) = Base.isiterable(Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}))
 supports_mode(::Mode.SortChain, ::ByPred{typeof(==)}, datas) = true
 supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, ==, >=, >, ∋))...}}, datas) = true
 

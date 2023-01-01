@@ -8,9 +8,9 @@ function SentinelView(a, indices, sentinel)
     @assert !(typeof(sentinel) <: keytype(a))
     SentinelView{
         if eltype(indices) <: keytype(a)
-            eltype(a)
+            valtype(a)
         elseif eltype(indices) <: Union{keytype(a), typeof(sentinel)}
-            Union{eltype(a), typeof(sentinel)}
+            Union{valtype(a), typeof(sentinel)}
         else
             error()
         end,

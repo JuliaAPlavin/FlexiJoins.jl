@@ -34,7 +34,7 @@ findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(last)) = propaga
 
 prepare_for_join(::Mode.NestedLoop, X, cond::JoinCondition) = X
 function findmatchix(::Mode.NestedLoop, cond::JoinCondition, a, B, multi::typeof(identity))
-    res = eltype(keys(B))[]
+    res = keytype(B)[]
     for (i, b) in pairs(B)
         if is_match(cond, a, b)
             push!(res, i)
