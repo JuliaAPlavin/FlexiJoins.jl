@@ -49,28 +49,25 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
     groups = similar(X, Int)
     dct = Dict{typeof(keyfunc(first(X))), Int}()
     @inbounds for (i, x) in pairs(X)
-        k = keyfunc(x)
-        group_id = get!(dct, k, ngroups + 1)
+        group_id = get!(dct, keyfunc(x), ngroups + 1)
         if group_id == ngroups + 1
             ngroups += 1
-            groups[i] = ngroups
-        else
-            groups[i] = group_id
         end
+        groups[i] = group_id
     end
 
     starts = zeros(Int, ngroups)
-    rperm = Vector{keytype(X)}(undef, length(X))
     @inbounds for gix in groups
         starts[gix] += 1
     end
     cumsum!(starts, starts)
+    push!(starts, length(groups))
 
+    rperm = Vector{keytype(X)}(undef, length(X))
     @inbounds for (i, gix) in pairs(groups)
         rperm[starts[gix]] = i
         starts[gix] -= 1
     end
-    push!(starts, length(groups))
 
     return (dct, starts, rperm)
 end
@@ -98,13 +95,13 @@ end
 findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(first)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     b = get(B, k, nothing)
-    T = valtype(B)
+    T = _valtype(B)
     isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
 end
 findmatchix(::Mode.Hash, cond::ByKey, a, B, multi::typeof(last)) = let
     k = get_actual_keyfunc(first(cond.keyfuncs))(a)
     b = get(B, k, nothing)
-    T = valtype(B)
+    T = _valtype(B)
     isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
 end
 
