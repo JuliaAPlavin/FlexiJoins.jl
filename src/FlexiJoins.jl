@@ -8,8 +8,9 @@ using Indexing
 
 
 export
-    flexijoin, @optic,
-    by_key, by_distance
+    flexijoin, joinindices, @optic,
+    by_key, by_distance,
+    keep, drop
 
 
 include("nothingindex.jl")
