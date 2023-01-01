@@ -52,13 +52,13 @@ import DataFrames
 # ╔═╡ 5518203f-b0f0-480b-bda6-1746f56057c9
 function generate_data(N, M)
 	Random.seed!(1234)
-	L = [(name=randstring(3), value=rand(-100:100)) for _ in 1:N]
-	R = [(name=randstring(3), value=rand(-100:100)) for _ in 1:M]
+	vmax = isqrt(N * M)  # so that number of matches comparable to N, M
+	nchars = ceil(Int, vmax^(1/10))
+	chars = range('a', length=nchars)
+	L = [(name=randstring(chars, 10), value=rand(0:vmax)) for _ in 1:N]
+	R = [(name=randstring(chars, 10), value=rand(0:vmax)) for _ in 1:M]
 	return (;L, R)
 end
-
-# ╔═╡ 9027254a-e94b-4112-afb4-058292102e53
-# times_flexi |> DisplayAs.Unlimited
 
 # ╔═╡ 3611a330-cba4-41eb-913a-c1561781d565
 
@@ -81,47 +81,55 @@ function autotimed(f; mintime=0.05)
 	end
 end
 
-# ╔═╡ 8b9b772d-5496-4ab9-82b1-7ee53d365545
-times = map(grid(N=10 .^ (0:5), M=10 .^ (0:5), join=[:Flexi, :SAC, :DF])) do p
-	LR = generate_data(p.N, p.M)
-	timed = if p.join == :Flexi
-		autotimed(() -> @p innerjoin(LR, by_key(@o(_.name))) |> count(_.R.value > -10000))
-	elseif p.join == :SAC
-		autotimed(() -> @p SAC.innerjoin(_.name, _.name, (_1, _2), LR.L, LR.R) |> count(_[2].value > -10000))
-	elseif p.join == :DF
-		L = DataFrames.DataFrame(LR.L)
-		R = DataFrames.DataFrame(LR.R)
-		autotimed(() -> DataFrames.innerjoin(L, R; makeunique=true, on=:name)[!, :value] |> sum)
+# ╔═╡ 6e5081b7-eea4-4fab-885d-d7c21d4d4c0f
+times = let
+	nmax10 = 5
+	G1 = grid(N=10 .^ (0:nmax10), M=10 .^ (0:nmax10), by=[:name], join=[
+		:Flexi → LR -> @p(innerjoin(LR, by_key(@o(_.name))) |> count(_.R.value > -10000)),
+		:SAC → LR -> @p(SAC.innerjoin(_.name, _.name, (_1, _2), LR.L, LR.R) |> count(_[2].value > -10000)),
+		:DF → LR -> let
+			LRd = map(DataFrames.DataFrame, LR)
+			DataFrames.innerjoin(LRd.L, LRd.R; makeunique=true, on=:name)[!, :value] |> sum
+		end,
+	])
+	G2 = grid(N=10 .^ (0:nmax10), M=10 .^ (0:nmax10), by=[:value], join=[
+		:Flexi → LR -> @p(innerjoin(LR, by_key(@o(_.value))) |> count(_.R.value > -10000)),
+		:SAC → LR -> @p(SAC.innerjoin(_.value, _.value, (_1, _2), LR.L, LR.R) |> count(_[2].value > -10000)),
+		:DF → LR -> let
+			LRd = map(DataFrames.DataFrame, LR)
+			DataFrames.innerjoin(LRd.L, LRd.R; makeunique=true, on=:value)[!, :value] |> sum
+		end,
+	])
+	mapreduce(vcat, [G1, G2]) do G
+		map(G) do p
+			LR = generate_data(p.N, p.M)
+			timed = autotimed(() -> p.join(LR))
+			(; timed.time, timed.gctime, timed.bytes, timed.nallocs, nmatches=timed.value)
+		end |> rowtable
 	end
-	(; timed.time, timed.gctime, timed.bytes, timed.nallocs, nmatches=timed.value)
-end;
+end
 
 # ╔═╡ a11deb65-a6d9-40db-b5f3-bb568a50c69e
 let
-	df = @p times |> rowtable |> map((;_.join, _.N, _.M, var"N + M"=_.N+_.M, maxNM=max(_.N, _.M), gcfrac=_.value.gctime / _.value.time, _.value...))
+	df = @p times |> rowtable |> map((;_.join, _.by, _.N, _.M, var"N + M"=_.N+_.M, maxNM=max(_.N, _.M), gcfrac=_.value.gctime / _.value.time, _.value...))
 	ch = altChart(df)
-	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:join)).mark_line() |
-		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:join)).mark_line() |
-		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:nallocs, scale=alt.Scale(type=:log)), alt.Color(:join)).mark_line()
+	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:join), alt.StrokeDash(:by)).mark_line() |
+		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:join), alt.StrokeDash(:by)).mark_line() |
+		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:nallocs, scale=alt.Scale(type=:log)), alt.Color(:join), alt.StrokeDash(:by)).mark_line()
 	altVLSpec(ch)
 end
 
 # ╔═╡ 0b8f88da-621b-453c-a6d8-826629cd6738
-times_flexi = map(grid(N=10 .^ (0:5), M=10 .^ (0:5), cond=[:key_1, :key_2, :key_gr, :pred, :dist, :multi])) do p
+times_flexi = map(grid(N=10 .^ (0:5), M=10 .^ (0:5), cond=[
+	:key_1 → LR -> @p(flexijoin(LR, by_key(@o(_.name))) |> count(_.R.value > -10000)),
+	:key_2 → LR -> @p(flexijoin(LR, by_key((@o(_.name), @o(_.value)))) |> count(_.R.value > -10000)),
+	:key_gr → LR -> @p(flexijoin(LR, by_key(@o(_.name)); groupby=:L) |> sum(count(r -> r.value > -10000, _.R); init=0)),
+	:pred → LR -> @p(flexijoin(LR, by_pred(@o(_.value), <, @o(_.value)); multi=(R=closest,)) |> count(_.R.value > -10000)),
+	:dist → LR -> @p(flexijoin(LR, by_distance(@o(_.value), Euclidean(), <=(10)); multi=(R=closest,)) |> count(_.R.value > -10000)),
+	:multi → LR -> @p(flexijoin(LR, by_key(@o(_.name)) & by_pred(@o(_.value), <, @o(_.value)); multi=(R=closest,)) |> count(_.R.value > -10000)),
+])) do p
 	LR = generate_data(p.N, p.M)
-	timed = if p.cond == :key_1
-		autotimed(() -> @p flexijoin(LR, by_key(@o(_.name))) |> count(_.R.value > -10000))
-	elseif p.cond == :key_2
-		autotimed(() -> @p flexijoin(LR, by_key((@o(_.name), @o(_.value)))) |> count(_.R.value > -10000))
-	elseif p.cond == :key_gr
-		autotimed(() -> @p flexijoin(LR, by_key(@o(_.name)); groupby=:L) |> sum(count(r -> r.value > -10000, _.R); init=0))
-	elseif p.cond == :pred
-		autotimed(() -> @p flexijoin(LR, by_pred(@o(_.value), <, @o(_.value)); multi=(R=closest,)) |> count(_.R.value > -10000))
-	elseif p.cond == :dist
-		autotimed(() -> @p flexijoin(LR, by_distance(@o(_.value), Euclidean(), <=(10)); multi=(R=closest,)) |> count(_.R.value > -10000))
-	elseif p.cond == :multi
-		autotimed(() -> @p flexijoin(LR, by_key(@o(_.name)) & by_pred(@o(_.value), <, @o(_.value)); multi=(R=closest,)) |> count(_.R.value > -10000))
-	end
+	timed = autotimed(() -> p.cond(LR))
 	(; timed.time, timed.gctime, timed.bytes, timed.nallocs, nmatches=timed.value)
 end;
 
@@ -132,15 +140,6 @@ let
 	ch = ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:time, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line() |
 		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:bytes, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line() |
 		ch.encode(alt.X("N + M", scale=alt.Scale(type=:log)), alt.Y(:nallocs, scale=alt.Scale(type=:log)), alt.Color(:cond)).mark_line()
-	altVLSpec(ch)
-end
-
-# ╔═╡ 040a01d6-9f00-4d47-b025-a3a2ae743665
-let
-	df = @p times_flexi |> rowtable |> map((;_.cond, _.N, _.M, var"N+M"=_.N+_.M, maxNM=max(_.N, _.M), _.value...)) |> filter(_.cond == :pred)
-	ch = altChart(df)
-	ch = ch.encode(alt.Y(:time, scale=alt.Scale(type=:log)), alt.StrokeDash(:cond)).mark_line(point=false)
-	ch = ch.encode(alt.X(:N, scale=alt.Scale(type=:log)), alt.Color("M:N")) | ch.encode(alt.X(:M, scale=alt.Scale(type=:log)), alt.Color("N:N"))
 	altVLSpec(ch)
 end
 
@@ -169,7 +168,7 @@ DataPipes = "~0.2.8"
 DisplayAs = "~0.1.5"
 Distances = "~0.10.7"
 FlexiJoins = "~0.1.0"
-RectiGrids = "~0.1.8"
+RectiGrids = "~0.1.9"
 Revise = "~3.3.3"
 SplitApplyCombine = "~1.2.1"
 Tables = "~1.7.0"
@@ -181,7 +180,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.0-beta3"
 manifest_format = "2.0"
-project_hash = "00c71d001fbb11e4bb8e134dfa141c7e81472ba4"
+project_hash = "c917ef09fd09d5064fc8ff0c4bf439b1154e7bee"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -342,9 +341,9 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[deps.Dictionaries]]
 deps = ["Indexing", "Random"]
-git-tree-sha1 = "0340cee29e3456a7de968736ceeb705d591875a2"
+git-tree-sha1 = "7669d53b75e9f9e2fa32d5215cb2af348b2c13e2"
 uuid = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
-version = "0.3.20"
+version = "0.3.21"
 
 [[deps.DisplayAs]]
 git-tree-sha1 = "43c017d5dd3a48d56486055973f443f8a39bb6d9"
@@ -668,9 +667,9 @@ uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [[deps.RectiGrids]]
 deps = ["AxisKeys", "Random"]
-git-tree-sha1 = "f99a4a6049b9591dab133517e6b28178fbc3a2fc"
+git-tree-sha1 = "b8df108363306bbd2317477851f4106cfbe0278c"
 uuid = "8ac6971d-971d-971d-971d-971d5ab1a71a"
-version = "0.1.8"
+version = "0.1.9"
 
 [[deps.Reexport]]
 git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
@@ -873,12 +872,10 @@ version = "16.2.1+1"
 # ╠═1adbf990-8e33-4515-a26e-72df088ccee4
 # ╠═48694a75-d35e-44e4-baf7-b411c442c2b5
 # ╠═5518203f-b0f0-480b-bda6-1746f56057c9
-# ╠═8b9b772d-5496-4ab9-82b1-7ee53d365545
+# ╠═6e5081b7-eea4-4fab-885d-d7c21d4d4c0f
 # ╠═0b8f88da-621b-453c-a6d8-826629cd6738
-# ╠═9027254a-e94b-4112-afb4-058292102e53
 # ╠═a11deb65-a6d9-40db-b5f3-bb568a50c69e
 # ╠═38ffdb28-c567-4b68-b14e-1bd5919f4816
-# ╠═040a01d6-9f00-4d47-b025-a3a2ae743665
 # ╠═3611a330-cba4-41eb-913a-c1561781d565
 # ╠═33cbaf50-5ad0-4418-aa11-b0966b076ffc
 # ╟─00000000-0000-0000-0000-000000000001
