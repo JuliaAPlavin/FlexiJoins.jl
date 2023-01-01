@@ -39,11 +39,11 @@ normalize_keyfunc(x) = x
 normalize_keyfunc(x::Symbol) = Accessors.PropertyLens{x}()
 
 
-findmatchix_wix(mode::Union{Mode.NestedLoop, Mode.Sort, Mode.Tree}, cond::JoinCondition, ix_a, a, B_prep, multi::Union{typeof(first), typeof(last)}) = matchix_postprocess_multi(findmatchix_wix(mode, cond, ix_a, a, B_prep, identity), multi)
+findmatchix(mode::Union{Mode.NestedLoop, Mode.Sort, Mode.Tree}, cond::JoinCondition, ix_a, a, B_prep, multi::Union{typeof(first), typeof(last)}) = matchix_postprocess_multi(findmatchix(mode, cond, ix_a, a, B_prep, identity), multi)
 
 
 prepare_for_join(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, X, cond::JoinCondition) = X
-function findmatchix_wix(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, cond::JoinCondition, ix_a, a, B, multi::typeof(identity))
+function findmatchix(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, cond::JoinCondition, ix_a, a, B, multi::typeof(identity))
     res = keytype(B)[]
     for (i, b) in pairs(B)
         if is_match(cond, ix_a, a, i, b)
@@ -69,9 +69,9 @@ _eltype(A::T) where {T} = Core.Compiler.return_type(first, Tuple{T})
 
 prepare_for_join(::Mode.Sort, X, cond::JoinCondition) = (X, sortperm(X; by=sort_byf(cond)))
 
-findmatchix_wix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(identity)) =
+findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(identity)) =
     searchsorted_matchix(cond, a, B, perm)  # sort to keep same order?
-findmatchix_wix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(closest)) =
+findmatchix(::Mode.Sort, cond::JoinCondition, ix_a, a, (B, perm)::Tuple, multi::typeof(closest)) =
     searchsorted_matchix_closest(cond, a, B, perm)
 
 
@@ -99,8 +99,8 @@ supports_mode(mode::Mode.Sort, cond::CompositeCondition, datas) =
 
 prepare_for_join(mode::Mode.Hash, X, cond::CompositeCondition, multi) = prepare_for_join(mode, X, first(cond.conds), multi)
 
-findmatchix_wix(mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) = 
-    @p findmatchix_wix(mode, first(cond.conds), ix_a, a, X, multi) |>
+findmatchix(mode::Mode.Hash, cond::CompositeCondition, ix_a, a, X, multi) = 
+    @p findmatchix(mode, first(cond.conds), ix_a, a, X, multi) |>
         Iterators.filter(is_match_ix(last(cond.conds), ix_a, _))
 
 

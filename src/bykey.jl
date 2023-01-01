@@ -84,20 +84,20 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first
     return dct
 end
 
-@inbounds function findmatchix_wix(::Mode.Hash, cond::ByKey, ix_a, a, (dct, starts, rperm)::Tuple, multi::typeof(identity))
+@inbounds function findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, (dct, starts, rperm)::Tuple, multi::typeof(identity))
     group_id = get(dct, first(cond.keyfuncs)(a), -1)
     group_id == -1 ?
         @view(rperm[1:1:0]) :
         @view(rperm[starts[group_id + 1]:-1:1 + starts[group_id]])
 end
 # two methods with the same body, for resolver disambiguation
-findmatchix_wix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::typeof(first)) = let
+findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::typeof(first)) = let
     k = first(cond.keyfuncs)(a)
     b = get(B, k, nothing)
     T = valtype(B)
     isnothing(b) ? MaybeVector{T}() : MaybeVector{T}(b)
 end
-findmatchix_wix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::typeof(last)) = let
+findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::typeof(last)) = let
     k = first(cond.keyfuncs)(a)
     b = get(B, k, nothing)
     T = valtype(B)
