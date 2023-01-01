@@ -67,15 +67,15 @@ function joinindices(datas::Tuple, cond; kwargs...)
     return StructArray(StructArrays.components(IXs_unnamed))
 end
 
-function _joinindices(datas, cond; kwargs...)
+function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=nothing, cardinality=nothing, mode=nothing)
     _joinindices(
         values(datas),
         normalize_arg(cond, datas),
-        normalize_arg(get(kwargs, :multi, nothing), datas; default=identity),
-        normalize_arg(get(kwargs, :nonmatches, nothing), datas; default=drop),
-        normalize_groupby(get(kwargs, :groupby, nothing), datas),
-        normalize_arg(get(kwargs, :cardinality, nothing), datas; default=*),
-        get(kwargs, :mode, nothing),
+        normalize_arg(multi, datas; default=identity),
+        normalize_arg(nonmatches, datas; default=drop),
+        normalize_groupby(groupby, datas),
+        normalize_arg(cardinality, datas; default=*),
+        mode,
     )
 end
 
