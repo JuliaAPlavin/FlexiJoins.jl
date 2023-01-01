@@ -1,35 +1,20 @@
-import .NearestNeighbors as NN
-using .StaticArrays: SVector
-
-
 # by distance:
 prepare_for_join(::Mode.Tree, X, cond::ByDistance) =
-    PreparedPartial(
-        (X, (cond.dist isa NN.MinkowskiMetric ? NN.KDTree : NN.BallTree)(map(cond.func_R, X) |> wrap_matrix, cond.dist)),
-        () -> (keytype(X)[], Float64[]),
-    )
-function findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree, idx, _)::Tuple, multi::typeof(identity))
-    NN.inrange_point!(tree, wrap_vector(cond.func_L(a)), cond.max, false, empty!(idx))
-    idx
-end
-function findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree, idx, dist)::Tuple, multi::Closest)
-    resize!(idx, 1)
-    resize!(dist, 1)
-    NN.knn_point!(tree, wrap_vector(cond.func_L(a)), false, dist, idx, NN.always_false)
-    cond.pred(only(dist), cond.max) ? idx : empty!(idx)
+    (X, (cond.dist isa NN.MinkowskiMetric ? NN.KDTree : NN.BallTree)(map(cond.func_R, X) |> wrap_matrix, cond.dist))
+findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree)::Tuple, multi::typeof(identity)) =
+    NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
+function findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree)::Tuple, multi::Closest)
+    idxs, dists = NN.knn(tree, wrap_vector(cond.func_L(a)), 1)
+    cond.pred(only(dists), cond.max) ? idxs : empty!(idxs)
 end
 
 # by predicate:
 prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) =
-    PreparedPartial(
-        # XXX: for some reason, wrap_vector ∘ endpoints ∘ cond.Rf does not infer (Julia 1.8), and KDTree fails for Vector{Any}
-        (X, NN.KDTree(map(x -> wrap_vector(endpoints(cond.Rf(x))), X), NN.Euclidean())),
-        () -> (keytype(X)[],),
-    )
-function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree, idx)::Tuple, multi::typeof(identity))
+    (X, NN.KDTree(map(wrap_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
+function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree)::Tuple, multi::typeof(identity))
     leftint = cond.Lf(a)
-    inrange_rect!(tree, wrap_vector((-Inf, leftendpoint(leftint))), wrap_vector((rightendpoint(leftint), Inf)), empty!(idx))
-    @p filter!(cond.pred(leftint, cond.Rf(B[_])), idx)
+    @p inrect(tree, wrap_vector((-Inf, leftendpoint(leftint))), wrap_vector((rightendpoint(leftint), Inf))) |>
+        filter!(cond.pred(leftint, cond.Rf(B[_])))
 end
 
 
@@ -45,7 +30,7 @@ wrap_vector(t::Tuple) = SVector(t)
 
 
 # until https://github.com/KristofferC/NearestNeighbors.jl/pull/150
-using .NearestNeighbors: KDTree, isleaf, get_leaf_range, getleft, getright
+using NearestNeighbors: KDTree, isleaf, get_leaf_range, getleft, getright
 
 function inrect(tree, a, b)
     idx = Int[]

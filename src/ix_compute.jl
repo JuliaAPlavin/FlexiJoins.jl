@@ -21,8 +21,6 @@ function _fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), 
     append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 
-# Note: append_matchix!(...) must not push IX_2 as-is into IXs: a copy must be made
-# findmatchix(...) is allowed
 append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing) = 
     foreach_inbounds(IX_2) do ix_2
         push!(IXs, (ix_1, ix_2))

@@ -58,16 +58,14 @@ supports_mode(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, datas) =
     Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}) <: Interval &&  Core.Compiler.return_type(cond.Rf, Tuple{valtype(datas[2])}) <: Interval
 
 
-# Hash implementation: delegates to by_key()
-# Only cond.Rf is evaluated in prepare_for_join, and only cond.Lf in findmatchix.
-# However, we always pass both for correct dispatch in ByKey: see ByIndex there.
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(cond.Lf, cond.Rf), multi)
-findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, ix_a, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, cond.Rf), ix_a, a, Bdata, multi)
+# Hash implementation
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(==)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
+findmatchix(mode::Mode.Hash, cond::ByPred{typeof(==)}, ix_a, a, Bdata, multi) = findmatchix(mode, by_key(cond.Lf, nothing), ix_a, a, Bdata, multi)
 
-prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(cond.Lf, cond.Rf), multi)
+prepare_for_join(mode::Mode.Hash, X, cond::ByPred{typeof(∋)}, multi) = prepare_for_join(mode, X, by_key(nothing, cond.Rf), multi)
 findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi) =
     @p cond.Lf(a) |>
-        Iterators.map(findmatchix(mode, by_key(identity, cond.Rf), nothing, _, Bdata, multi)) |>
+        Iterators.map(findmatchix(mode, by_key(identity, nothing), nothing, _, Bdata, multi)) |>
         Iterators.flatten() |>
         unique |>
         matchix_postprocess_multi(__, multi)
@@ -107,11 +105,6 @@ sort_byf(cond::ByPred{<:Union{typeof.((⊋, ⊇))...}}) = leftendpoint ∘ cond.
         filter(cond.pred(leftint, cond.Rf(B[_])))
     end
 end
-
-# Tree for overlaps
-# signature should be the same as in nearestneighbors.jl:
-prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) = error("Load NearestNeighbors.jl to use tree-based join conditions")
-
 
 # helper functions
 searchsorted_in(A, X) = @p X |> Iterators.map(searchsorted(A, _)) |> Iterators.flatten() |> unique

@@ -40,9 +40,6 @@ using StaticArrays
 # ╔═╡ aafe09a8-480d-46dc-ac13-3adaddf94621
 using PlutoUI
 
-# ╔═╡ bb387f65-a622-41d5-a7f9-9559f454cc4a
-using NearestNeighbors
-
 # ╔═╡ 095e9db4-8910-4ba9-b95a-518904d054c5
 md"""
 !!! warn "FlexiJoins"
@@ -523,7 +520,6 @@ Dictionaries = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 FlexiJoins = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
-NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
@@ -538,7 +534,6 @@ Dictionaries = "~0.3.21"
 Distances = "~0.10.7"
 FlexiJoins = "~0.1.23"
 IntervalSets = "~0.7.1"
-NearestNeighbors = "~0.4.11"
 PlutoUI = "~0.7.39"
 Revise = "~3.3.3"
 StaticArrays = "~1.5.1"
@@ -552,7 +547,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.0-rc1"
 manifest_format = "2.0"
-project_hash = "610aa8ab08a36c0382f301fcb3f7ec13ec614ec4"
+project_hash = "c430ecc8fe0661f1615f41d8ed6b584e6a7a8081"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -700,10 +695,10 @@ uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.4"
 
 [[deps.FlexiJoins]]
-deps = ["Accessors", "ArraysOfArrays", "DataAPI", "DataPipes", "IntervalSets", "NearestNeighbors", "Requires", "SplitApplyCombine", "Static", "StaticArrays", "StructArrays", "Tables"]
+deps = ["Accessors", "ArraysOfArrays", "DataAPI", "DataPipes", "IntervalSets", "NearestNeighbors", "Requires", "SplitApplyCombine", "Static", "StructArrays", "Tables"]
 path = "../../home/aplavin/.julia/dev/FlexiJoins"
 uuid = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
-version = "0.1.24"
+version = "0.1.23"
 
 [[deps.Formatting]]
 deps = ["Printf"]
@@ -1161,7 +1156,6 @@ version = "17.4.0+0"
 # ╠═0a21983a-c6af-40e3-9898-091dee85dbf6
 # ╠═3126064a-ab42-4a2c-877d-179d55ad82b9
 # ╠═aafe09a8-480d-46dc-ac13-3adaddf94621
-# ╠═bb387f65-a622-41d5-a7f9-9559f454cc4a
 # ╠═3a3dcb2d-67ee-4a01-b6ff-41288f4414a9
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

@@ -53,5 +53,3 @@ searchsorted_matchix_closest(cond::ByDistance, a, B, perm) =
 
 
 supports_mode(::Mode.Tree, ::ByDistance, datas) = true
-# signature should be the same as in nearestneighbors.jl:
-prepare_for_join(::Mode.Tree, X, cond::ByDistance) = error("Load NearestNeighbors.jl to use tree-based join conditions")

@@ -32,6 +32,10 @@ include("bysame.jl")
 include("ix_compute.jl")
 include("joins.jl")
 
+using StaticArrays: SVector
+import NearestNeighbors as NN
+include("nearestneighbors.jl")
+
 
 function __init__()
     @require DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0" begin
@@ -50,10 +54,6 @@ function __init__()
             empty_row = constructorof(base_eltype)(ntuple(_ -> missing, fieldcount(base_eltype))...)
             DataFrame(x isa base_eltype ? x : empty_row for x in xs)
         end
-    end
-
-    @require NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce" begin
-        @require StaticArrays = "90137ffa-7385-5640-81b9-e52037218182" include("nearestneighbors.jl")
     end
 end
 

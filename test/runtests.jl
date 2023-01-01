@@ -2,7 +2,6 @@ using FlexiJoins
 using FlexiJoins: normalize_arg, ByKey, Mode
 using StructArrays, TypedTables
 using StaticArrays
-using NearestNeighbors
 using OffsetArrays
 using Dictionaries: dictionary
 using DataFrames
@@ -313,7 +312,7 @@ function test_modes(modes, args...; alloc=true, kwargs...)
             cond = args[2]
             joinindices(LR, Base.tail(args)...; kwargs..., mode)
             timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
-            if cond isa FlexiJoins.ByDistance && mode isa Mode.Sort
+            if cond isa FlexiJoins.ByDistance
                 @test_broken Base.gc_alloc_count(timed.gcstats) < 150
             else
                 @test Base.gc_alloc_count(timed.gcstats) < 150
@@ -321,8 +320,6 @@ function test_modes(modes, args...; alloc=true, kwargs...)
         end
     end
 end
-
-Threads.nthreads() > 1 || @warn "Only a single thread available"
 
 @testset "join modes" begin
     @testset "$cond" for (cond, modes, kwargs) in [
@@ -367,10 +364,6 @@ Threads.nthreads() > 1 || @warn "Only a single thread available"
             @test_throws AssertionError joinindices(OM, by_key(:abc); cache)
             @test_throws AssertionError joinindices(OM, cond; multi=first_M ? (O=first,) : (M=first,), cache)
             @test_throws AssertionError joinindices(OM, cond; mode=Mode.NestedLoop(), cache)
-
-            Threads.@threads for _ in 1:1000
-                test_unique_setequal(joinindices(OM, cond; cache), base)
-            end
 
             if !first_M
                 cache = join_cache()
@@ -455,4 +448,4 @@ import CompatHelperLocal as CHL
 CHL.@check()
 
 import Aqua
-Aqua.test_all(FlexiJoins; ambiguities=false, stale_deps=false)
+Aqua.test_all(FlexiJoins; ambiguities=false)
