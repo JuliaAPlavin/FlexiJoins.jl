@@ -6,15 +6,22 @@ From simple joins by key, to asof joins, to merging catalogs of terrestrial or c
 
 Defining features of FlexiJoins that make it _flexible_:
 
-- Wide range of join conditions: by key (so-called equi-join), by distance, by predicate, closest match (asof join)
+- Wide range of join conditions:
+    - by key, so-called equi-join
+	- by distance
+	- by a comparison predicate: one of `<, <=, ==, >=, >`
+	- all matches or only the closest match
+	- by an interval predicate: one of `∈, ⊆, ⊊, ⊋, ⊇, !isdisjoint`
+	- combinations of the above
 - All kinds of joins, as in inner/left/right/outer
 - Results can either be a flat list, or grouped by the left/right side
-- Various dataset types transparently supported
+- Lots of dataset types transparently supported: various arrays, dictionaries, tables
+- And more! See [examples](https://aplavin.github.io/FlexiJoins.jl/test/examples.html).
 
 With all these features, FlexiJoins is designed to be easy-to-use and fast:
 
 - Uniform interface to all functionaly
-- Performance close to other, less general, solutions: see [benchmarks](https://aplavin.github.io/FlexiJoins.jl/test/benchmarks.html)
+- Performance close to other, less general, solutions: see [benchmarks](https://aplavin.github.io/FlexiJoins.jl/test/benchmarks.html) comparing with `SplitApplyCombine.jl` and `DataFrames.jl`
 - Extensible in terms of both new join conditions and more specialized algorithms
 
 # Usage
