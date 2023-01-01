@@ -1,7 +1,6 @@
 module FlexiJoins
 
 using StructArrays
-using StaticArraysCore: SVector
 using Tables: columntable
 using Static: StaticInt, static
 using Accessors
@@ -9,6 +8,7 @@ using DataPipes
 using SplitApplyCombine: mapview
 using IntervalSets
 import NearestNeighbors as NN
+using StaticArrays: SVector  # used in NearestNeighbors anyways
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 using ArraysOfArrays: VectorOfVectors
 using Requires
@@ -37,7 +37,7 @@ include("joins.jl")
 
 function __init__()
     @require DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0" begin
-        using .DataFrames
+        using .DataFrames: DataFrame
 
         function _flexijoin(datas::Tuple{DataFrame, DataFrame}, args...; kwargs...)
             datas = map(to_table_for_join, datas)

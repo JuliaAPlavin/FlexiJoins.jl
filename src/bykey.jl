@@ -109,7 +109,7 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first
 end
 
 findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, B, multi::Union{typeof(first), typeof(last)}) = let
-    b = get(B, keyval(by, first, ix_a, a), nothing)
+    b = get(B, keyval(cond, first, ix_a, a), nothing)
     isnothing(b) ? MaybeVector{valtype(B)}() : MaybeVector{valtype(B)}(b)
 end
 
