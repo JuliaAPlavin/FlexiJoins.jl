@@ -19,67 +19,68 @@ end
 
 objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
 measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
+OM = (;O=objects, M=measurements)
 
 @testset "basic" begin
-    @test flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj))) ==
+    @test flexijoin(OM, by_key(@optic(_.obj))) ==
         [(O=(obj="A", value=2), M=(obj="A", time=8)), (O=(obj="A", value=2), M=(obj="A", time=12)), (O=(obj="A", value=2), M=(obj="A", time=16)), (O=(obj="A", value=2), M=(obj="A", time=20)), (O=(obj="B", value=-5), M=(obj="B", time=2))]
-    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj))) ==
+    @test joinindices(OM, by_key(@optic(_.obj))) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5)]
     @test joinindices((;O=objects, M=[(name=x.obj,) for x in measurements]), by_key(O=@optic(_.obj), M=@optic(_.name))) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5)]
 
-    J = flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)))
-    JI = joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)))
+    J = flexijoin(OM, by_key(@optic(_.obj)))
+    JI = joinindices(OM, by_key(@optic(_.obj)))
     @test parentindices(J.O) == (JI.O,)
     @test parentindices(J.M) == (JI.M,)
-    J = flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(M=keep,))
-    JI = joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(M=keep,))
+    J = flexijoin(OM, by_key(@optic(_.obj)); nonmatches=(M=keep,))
+    JI = joinindices(OM, by_key(@optic(_.obj)); nonmatches=(M=keep,))
     @test parentindices(J.O) == (JI.O,)
     @test parentindices(J.M) == (JI.M,)
 
-    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(O=keep,)) ==
+    @test joinindices(OM, by_key(@optic(_.obj)); nonmatches=(O=keep,)) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=3, M=nothing), (O=4, M=nothing)]
-    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=(M=keep,)) ==
+    @test joinindices(OM, by_key(@optic(_.obj)); nonmatches=(M=keep,)) ==
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=nothing, M=6), (O=nothing, M=7), (O=nothing, M=8)]
     test_unique_setequal(
-        joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); nonmatches=keep),
+        joinindices(OM, by_key(@optic(_.obj)); nonmatches=keep),
         [(O=1, M=1), (O=1, M=2), (O=1, M=3), (O=1, M=4), (O=2, M=5), (O=3, M=nothing), (O=4, M=nothing), (O=nothing, M=6), (O=nothing, M=7), (O=nothing, M=8)]
     )
 
-    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,)) ==
+    @test joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,)) ==
         [(O=1, M=1), (O=2, M=5)]
-    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=last,)) ==
+    @test joinindices(OM, by_key(@optic(_.obj)); multi=(M=last,)) ==
         [(O=1, M=4), (O=2, M=5)]
-    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=(O=keep,)) ==
+    @test joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), nonmatches=(O=keep,)) ==
         [(O=1, M=1), (O=2, M=5), (O=3, M=nothing), (O=4, M=nothing)]
 
-    @test flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O) ==
+    @test flexijoin(OM, by_key(@optic(_.obj)); groupby=:O) ==
         [(O=(obj="A", value=2), M=[(obj="A", time=8), (obj="A", time=12), (obj="A", time=16), (obj="A", time=20)]), (O=(obj="B", value=-5), M=[(obj="B", time=2)])]
-    @test joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O) ==
+    @test joinindices(OM, by_key(@optic(_.obj)); groupby=:O) ==
         [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5])]
     @test joinindices((objects, measurements), by_key(@optic(_.obj)); groupby=1) ==
         [(1, [1, 2, 3, 4]), (2, [5])]
-    @test_broken joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:M)
+    @test_broken joinindices(OM, by_key(@optic(_.obj)); groupby=:M)
     test_unique_setequal(
-        joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
+        joinindices(OM, by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
         [(O=1, M=[1, 2, 3, 4]), (O=2, M=[5]), (O=3, M=[]), (O=4, M=[]), (O=nothing, M=[6, 7, 8])]
     )
     test_unique_setequal(
-        flexijoin((;O=objects, M=measurements), by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
+        flexijoin(OM, by_key(@optic(_.obj)); groupby=:O, nonmatches=keep),
         [(O=(obj="A", value=2), M=[(obj="A", time=8), (obj="A", time=12), (obj="A", time=16), (obj="A", time=20)]), (O=(obj="B", value=-5), M=[(obj="B", time=2)]), (O=(obj="D", value=1), M=[]), (O=(obj="E", value=9), M=[]), (O=nothing, M=[(obj="C", time=6), (obj="C", time=9), (obj="C", time=12)])]
     )
     @test_broken isempty(joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value+3)..(x.value-3))))
-    @test joinindices((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,)) ==
+    @test joinindices(OM, by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,)) ==
         [(O=1, M=5), (O=3, M=5), (O=4, M=7)]
-    @test joinindices((;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,)) ==
+    @test joinindices(OM, by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=6), (O=2, M=5), (O=3, M=5), (O=4, M=2)]
-    @test joinindices((;O=objects, M=measurements), by_pred(:value, >, :time); multi=(M=closest,)) ==
+    @test joinindices(OM, by_pred(:value, >, :time); multi=(M=closest,)) ==
         [(O = 4, M = 1)]
-    @test joinindices((;O=objects, M=measurements), by_key(:obj) & by_pred(:value, <, :time); multi=(M=closest,)) ==
+    @test joinindices(OM, by_key(:obj) & by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=1), (O=2, M=5)]
 
-    @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
-    @test_throws ErrorException joinindices((;O=objects, M=measurements), by_key(@optic(_.obj)); multi=(M=first,), groupby=:M)
+    @test_throws ErrorException joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+    @test_throws ErrorException joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), groupby=:M)
 end
 
 @testset "not_same" begin
@@ -166,7 +167,7 @@ end
 @testset "types" begin
     @testset "container" begin
         @testset "basic" begin
-            J = innerjoin((;O=objects, M=measurements), by_key(:obj))
+            J = innerjoin(OM, by_key(:obj))
             @test J isa StructArray
             @test J.O isa SubArray
             @test J.M isa SubArray
@@ -177,7 +178,7 @@ end
         end
 
         @testset "grouped" begin
-            J = innerjoin((;O=objects, M=measurements), by_key(:obj); groupby=:O)
+            J = innerjoin(OM, by_key(:obj); groupby=:O)
             @test J isa StructArray
             @test J.O isa SubArray
             @test J.M isa Vector{<:SubArray}
@@ -188,7 +189,7 @@ end
         end
 
         @testset "sentinel" begin
-            J = leftjoin((;O=objects, M=measurements), by_key(:obj))
+            J = leftjoin(OM, by_key(:obj))
             @test J isa StructArray
             @test J.O isa SubArray
             @test J.M isa FlexiJoins.SentinelView
@@ -234,37 +235,37 @@ end
     end
 
     @testset "eltype" begin
-        J = innerjoin((;O=objects, M=measurements), by_key(:obj))
+        J = innerjoin(OM, by_key(:obj))
         @test eltype(J.O) == eltype(objects)
         @test eltype(J.M) == eltype(measurements)
-        J = leftjoin((;O=objects, M=measurements), by_key(:obj))
+        J = leftjoin(OM, by_key(:obj))
         @test eltype(J.O) == eltype(objects)
         @test eltype(J.M) == Union{Nothing, eltype(measurements)}
-        J = rightjoin((;O=objects, M=measurements), by_key(:obj))
+        J = rightjoin(OM, by_key(:obj))
         @test eltype(J.O) == Union{Nothing, eltype(objects)}
         @test eltype(J.M) == eltype(measurements)
-        J = outerjoin((;O=objects, M=measurements), by_key(:obj))
+        J = outerjoin(OM, by_key(:obj))
         @test eltype(J.O) == Union{Nothing, eltype(objects)}
         @test eltype(J.M) == Union{Nothing, eltype(measurements)}
     end
 end
 
 @testset "cardinality" begin
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=1, M=1))
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=*, M=0))
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0, M=*))
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=*, M=+))
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=+, M=*))
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=+, M=+))
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=+,))
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=0:1,))
-    @test_throws AssertionError joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=1:3,))
-    J = joinindices((;O=objects, M=measurements), by_key(:obj))
-    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=*,)) == J
-    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=0:4,)) == J
-    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(O=0:1,)) == J
-    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(M=0:4, O=0:1)) == J
-    @test joinindices((;O=objects, M=measurements), by_key(:obj); cardinality=(0:1, 0:4)) == J
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=1, M=1))
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=*, M=0))
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=0, M=*))
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=*, M=+))
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=+, M=*))
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=+, M=+))
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(M=+,))
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(M=0:1,))
+    @test_throws AssertionError joinindices(OM, by_key(:obj); cardinality=(O=1:3,))
+    J = joinindices(OM, by_key(:obj))
+    @test joinindices(OM, by_key(:obj); cardinality=(M=*,)) == J
+    @test joinindices(OM, by_key(:obj); cardinality=(M=0:4,)) == J
+    @test joinindices(OM, by_key(:obj); cardinality=(O=0:1,)) == J
+    @test joinindices(OM, by_key(:obj); cardinality=(M=0:4, O=0:1)) == J
+    @test joinindices(OM, by_key(:obj); cardinality=(0:1, 0:4)) == J
     joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 1))
     joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, +))
     joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(O=+,))
@@ -313,12 +314,12 @@ end
             (by_key(@optic(_.obj)) & by_pred(x -> x.value..(x.value + 10), ∋, @optic(_.time)), [Mode.NestedLoop(), Mode.Sort()], (;)),
             (by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)) & by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort()], (;)),
         ]
-        test_modes(modes, (;O=objects, M=measurements), cond; kwargs...)
+        test_modes(modes, OM, cond; kwargs...)
         test_modes(modes, (;O=objects[1:0], M=measurements), cond; kwargs...)
         test_modes(modes, (;O=objects, M=measurements[1:0]), cond; kwargs...)
         test_modes(modes, (;O=objects[1:0], M=measurements[1:0]), cond; kwargs...)
-        test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=(O=keep,), kwargs...)
-        test_modes(modes, (;O=objects, M=measurements), cond; nonmatches=keep, kwargs...)
+        test_modes(modes, OM, cond; nonmatches=(O=keep,), kwargs...)
+        test_modes(modes, OM, cond; nonmatches=keep, kwargs...)
 
         first_M = cond isa FlexiJoins.ByPred{typeof(∈)}  # the ∈ condition only supports a single "direction"
 
@@ -334,18 +335,18 @@ end
         @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,), cache)
         @test_throws AssertionError joinindices((;O=objects, M=measurements), cond; mode=Mode.NestedLoop(), cache)
 
-        test_modes(modes, (;O=objects, M=measurements), cond; multi=first_M ? (O=first,) : (M=first,), kwargs...)
+        test_modes(modes, OM, cond; multi=first_M ? (O=first,) : (M=first,), kwargs...)
 
         # order within groups may differ, so tests fail:
-        # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O)
-        # test_modes(modes, (;O=objects, M=measurements), cond; groupby=:O, nonmatches=keep)
+        # test_modes(modes, OM, cond; groupby=:O)
+        # test_modes(modes, OM, cond; groupby=:O, nonmatches=keep)
         for mode in [nothing; modes]
             # smoke test
-            joinindices((;O=objects, M=measurements), cond; groupby=first_M ? :M : :O, mode)
+            joinindices(OM, cond; groupby=first_M ? :M : :O, mode)
         end
     end
-    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
-    test_modes([Mode.NestedLoop(), Mode.Sort()], (;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,))
+    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], OM, by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,))
+    test_modes([Mode.NestedLoop(), Mode.Sort()], OM, by_pred(:value, <, :time); multi=(M=closest,))
     test_modes([Mode.NestedLoop(), Mode.Hash()], (measurements, measurements), by_key(:obj) & not_same(); alloc=false)
     test_modes([Mode.NestedLoop(), Mode.NestedLoopFast()], (measurements, measurements), not_same(); alloc=false)
 end
