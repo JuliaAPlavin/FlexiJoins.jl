@@ -36,7 +36,9 @@ findmatchix(mode::Mode.NestedLoop, cond::ByDistance, ix_a, a, B, multi::Closest)
 
 supports_mode(::Mode.Sort, ::ByDistance, datas) = true
 function sort_byf(cond::ByDistance)
-    cond.dist isa NN.MinkowskiMetric || @warn "Joining by distance using componentwise sorting, this doesn't work for all distance types" cond.dist
+    # check cond.dist isa NN.MinkowskiMetric, without depending on NN.jl:
+    nameof(typeof(cond.dist)) ∈ (:Euclidean, :Chebyshev, :Cityblock, :Minkowski, :WeightedEuclidean, :WeightedCityblock, :WeightedMinkowski) ||
+        @warn "Joining by distance using componentwise sorting, this doesn't work for all distance types" cond.dist
     x -> first(cond.func_R(x))
 end
 function searchsorted_matchix(cond::ByDistance, a, B, perm)
@@ -51,18 +53,3 @@ searchsorted_matchix_closest(cond::ByDistance, a, B, perm) =
 
 
 supports_mode(::Mode.Tree, ::ByDistance, datas) = true
-prepare_for_join(::Mode.Tree, X, cond::ByDistance) =
-    (X, (cond.dist isa NN.MinkowskiMetric ? NN.KDTree : NN.BallTree)(map(cond.func_R, X) |> wrap_matrix, cond.dist))
-findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree)::Tuple, multi::typeof(identity)) =
-    NN.inrange(tree, wrap_vector(cond.func_L(a)), cond.max)
-function findmatchix(::Mode.Tree, cond::ByDistance, ix_a, a, (B, tree)::Tuple, multi::Closest)
-    idxs, dists = NN.knn(tree, wrap_vector(cond.func_L(a)), 1)
-    cond.pred(only(dists), cond.max) ? idxs : empty!(idxs)
-end
-
-wrap_matrix(X::Vector{<:AbstractVector}) = X
-wrap_matrix(X::Vector{<:AbstractFloat}) = reshape(X, (1, :))
-wrap_matrix(X::Vector{<:Integer}) = wrap_matrix(map(float, X))
-
-wrap_vector(X::AbstractVector{<:Number}) = X
-wrap_vector(X::Number) = MaybeVector{typeof(X)}(X)

@@ -106,16 +106,6 @@ sort_byf(cond::ByPred{<:Union{typeof.((⊋, ⊇))...}}) = leftendpoint ∘ cond.
     end
 end
 
-# Tree for overlaps
-prepare_for_join(::Mode.Tree, X, cond::ByPred{typeof((!) ∘ isdisjoint)}) =
-    (X, NN.KDTree(map(as_vector ∘ endpoints ∘ cond.Rf, X) |> wrap_matrix, NN.Euclidean()))
-function findmatchix(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, ix_a, a, (B, tree)::Tuple, multi::typeof(identity))
-    leftint = cond.Lf(a)
-    @p inrect(tree, as_vector((-Inf, leftendpoint(leftint))), as_vector((rightendpoint(leftint), Inf))) |>
-        filter!(cond.pred(leftint, cond.Rf(B[_])))
-end
-
-
 # helper functions
 searchsorted_in(A, X) = @p X |> Iterators.map(searchsorted(A, _)) |> Iterators.flatten() |> unique
 searchsorted_in(arr, int::Interval) = searchsorted_interval(arr, int)

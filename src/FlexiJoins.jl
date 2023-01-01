@@ -7,7 +7,6 @@ using Accessors
 using DataPipes
 using SplitApplyCombine: mapview
 using IntervalSets
-import NearestNeighbors as NN
 import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 using ArraysOfArrays: VectorOfVectors
 using Requires
@@ -33,10 +32,14 @@ include("bysame.jl")
 include("ix_compute.jl")
 include("joins.jl")
 
+using StaticArrays: SVector
+import NearestNeighbors as NN
+include("nearestneighbors.jl")
+
 
 function __init__()
     @require DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0" begin
-        using .DataFrames
+        using .DataFrames: DataFrame
 
         function _flexijoin(datas::Tuple{DataFrame, DataFrame}, args...; kwargs...)
             datas = map(to_table_for_join, datas)
@@ -52,14 +55,6 @@ function __init__()
             DataFrame(x isa base_eltype ? x : empty_row for x in xs)
         end
     end
-
-    @require StaticArrays = "90137ffa-7385-5640-81b9-e52037218182" begin
-        using .StaticArrays
-
-        as_vector(t::Tuple) = SVector(t)
-    end
 end
-
-as_vector(t::Tuple) = error("Load StaticArrays")
 
 end
