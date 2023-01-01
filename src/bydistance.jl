@@ -6,6 +6,14 @@ struct ByDistance{TFL, TFR, TD, TP <: Union{typeof.((<, <=))...}} <: JoinConditi
     max::Float64
 end
 
+swap_sides(c::ByDistance) = ByDistance(
+    c.func_R,
+    c.func_L,
+    c.dist,
+    c.pred,
+    c.max
+)
+
 """
     by_distance(f, dist, pred)
     by_distance(f_L, f_R, dist, pred)

@@ -20,7 +20,7 @@ best_mode(cond, datas) =
     supports_mode(Mode.Hash(), cond, datas) ? Mode.Hash() :
     supports_mode(Mode.Tree(), cond, datas) ? Mode.Tree() :
     supports_mode(Mode.Sort(), cond, datas) ? Mode.Sort() :
-    error("No known mode supported by $cond")
+    nothing
 
 
 findmatchix(mode, cond::JoinCondition, a, B_prep, multi::typeof(first)) = propagate_empty(minimum, findmatchix(mode, cond, a, B_prep, identity))
@@ -52,6 +52,8 @@ Base.:(&)(a::JoinCondition, b::JoinCondition) = CompositeCondition((a, b))
 Base.:(&)(a::CompositeCondition, b::JoinCondition) = CompositeCondition((a.conds..., b))
 Base.:(&)(a::JoinCondition, b::CompositeCondition) = CompositeCondition((a, b.conds))
 Base.:(&)(a::CompositeCondition, b::CompositeCondition) = CompositeCondition((a.conds..., b.conds...))
+
+swap_sides(c::CompositeCondition) = CompositeCondition(map(swap_sides, c.conds))
 
 normalize_arg(cond::CompositeCondition, datas) = CompositeCondition(map(c -> normalize_arg(c, datas), cond.conds))
 

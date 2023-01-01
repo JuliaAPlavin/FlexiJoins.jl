@@ -2,6 +2,8 @@ struct ByKey{TFs} <: JoinCondition
     keyfuncs::TFs
 end
 
+swap_sides(c::ByKey) = ByKey(swap_sides(c.keyfuncs))
+
 """
     by_key(f)
     by_key((f_L, f_R))

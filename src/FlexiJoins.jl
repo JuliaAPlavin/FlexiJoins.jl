@@ -8,6 +8,7 @@ using Indexing
 using SplitApplyCombine: mapview
 using IntervalSets
 import NearestNeighbors as NN
+import DataAPI: innerjoin, leftjoin, rightjoin, outerjoin
 
 
 export
@@ -66,20 +67,37 @@ function joinindices(datas::Tuple, cond; kwargs...)
     return StructArray(StructArrays.components(IXs_unnamed))
 end
 
-function _joinindices(datas, cond; kwargs...)
+function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=nothing, cardinality=nothing, mode=nothing)
     _joinindices(
         values(datas),
         normalize_arg(cond, datas),
-        normalize_arg(get(kwargs, :multi, nothing), datas; default=identity),
-        normalize_arg(get(kwargs, :nonmatches, nothing), datas; default=drop),
-        normalize_groupby(get(kwargs, :groupby, nothing), datas),
-        normalize_arg(get(kwargs, :cardinality, nothing), datas; default=*),
-        get(kwargs, :mode, nothing),
+        normalize_arg(multi, datas; default=identity),
+        normalize_arg(nonmatches, datas; default=drop),
+        normalize_groupby(groupby, datas),
+        normalize_arg(cardinality, datas; default=*),
+        mode,
     )
 end
 
 function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode)
-    mode = @something(mode, best_mode(cond, datas))
+    mode = if !isnothing(mode)
+        mode
+    elseif !isnothing(best_mode(cond, datas))
+        best_mode(cond, datas)
+    elseif !isnothing(best_mode(swap_sides(cond), swap_sides(datas)))
+        return _joinindices(
+            swap_sides(datas),
+            swap_sides(cond),
+            swap_sides(multi),
+            swap_sides(nonmatches),
+            swap_sides(groupby),
+            swap_sides(cardinality),
+            best_mode(swap_sides(cond), swap_sides(datas)),
+        ) |> swap_sides
+    else
+        error("No known mode supported by $cond")
+    end
+
     if any(@. multi !== identity && nonmatches !== drop)
         error("Values of arguments don't make sense together: ", (; nonmatches, multi))
     end

@@ -4,6 +4,14 @@ struct ByPred{TP, TL, TR} <: JoinCondition
     pred::TP
 end
 
+swap_sides(c::ByPred) = ByPred(c.Rf, c.Lf, swap_sides(c.pred))
+swap_sides(::typeof(∈)) = ∋
+swap_sides(::typeof(<)) = >
+swap_sides(::typeof(<=)) = >=
+swap_sides(::typeof(==)) = ==
+swap_sides(::typeof(>=)) = <=
+swap_sides(::typeof(>)) = <
+
 """
     by_pred(f_L, pred, f_R)
 

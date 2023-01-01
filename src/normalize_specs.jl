@@ -18,7 +18,7 @@ normalize_arg(::Nothing, datas; default) = map(Returns(default), datas) |> value
 
 normalize_arg(x, datas; default) = map(Returns(x), datas) |> values
 
-normalize_arg(x::Tuple, datas::NamedTuple; default) = let
+normalize_arg(x::Tuple, datas::Union{NamedTuple, Tuple}; default) = let
 	@assert length(x) == length(datas)
 	x
 end
@@ -36,3 +36,9 @@ normalize_arg(x::NamedTuple{NSx}, datas::NamedTuple{NS}; default) where {NSx, NS
 		x
 	) |> values
 end
+
+
+swap_sides(x::Nothing) = x
+swap_sides(x::Tuple) = reverse(x)
+swap_sides(x::NamedTuple{NS}) where {NS} = NamedTuple{reverse(NS)}(reverse(values(x)))
+swap_sides(x::StructArray) = StructArray(swap_sides(StructArrays.components(x)))
