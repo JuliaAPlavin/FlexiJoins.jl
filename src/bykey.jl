@@ -45,8 +45,8 @@ is_match(by::ByKey, a, b) = first(by.keyfuncs)(a) == last(by.keyfuncs)(b)
 # Sort implementation
 supports_mode(::Mode.SortChain, ::ByKey, datas) = true
 sort_byf(cond::ByKey) = last(cond.keyfuncs)
-@inbounds searchsorted_matchix(cond::ByKey, a, B, perm) =
-    @view perm[searchsorted(
+searchsorted_matchix(cond::ByKey, a, B, perm) =
+    @inbounds @view perm[searchsorted(
         mapview(i -> last(cond.keyfuncs)(B[i]), perm),
         first(cond.keyfuncs)(a)
     )]
@@ -86,9 +86,9 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
     return (dct, starts, rperm)
 end
 
-@inbounds function findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, (dct, starts, rperm)::Tuple, multi::typeof(identity))
+function findmatchix(::Mode.Hash, cond::ByKey, ix_a, a, (dct, starts, rperm)::Tuple, multi::typeof(identity))
     group_id = get(dct, first(cond.keyfuncs)(a), -1)
-    group_id == -1 ?
+    @inbounds group_id == -1 ?
         @view(rperm[1:1:0]) :
         @view(rperm[starts[group_id + 1]:-1:1 + starts[group_id]])
 end

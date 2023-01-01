@@ -75,22 +75,22 @@ findmatchix(mode::Mode.Hash, cond::ByPred{typeof(∋)}, ix_a, a, Bdata, multi) =
 # Sort implementation for comparisons
 sort_byf(cond::ByPred{<:Union{typeof.((<, <=, ==, >=, >))...}}) = cond.Rf
 
-@inbounds searchsorted_matchix(cond::ByPred{ typeof(<)}, a, B, perm) = @view perm[searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) + 1:end]
-@inbounds searchsorted_matchix(cond::ByPred{typeof(<=)}, a, B, perm) = @view perm[searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)):end]
-@inbounds searchsorted_matchix(cond::ByPred{typeof(==)}, a, B, perm) = @view perm[searchsorted(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
-@inbounds searchsorted_matchix(cond::ByPred{typeof(>=)}, a, B, perm) = @view perm[begin:searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
-@inbounds searchsorted_matchix(cond::ByPred{ typeof(>)}, a, B, perm) = @view perm[begin:searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) - 1]
+searchsorted_matchix(cond::ByPred{ typeof(<)}, a, B, perm) = @inbounds @view perm[searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) + 1:end]
+searchsorted_matchix(cond::ByPred{typeof(<=)}, a, B, perm) = @inbounds @view perm[searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)):end]
+searchsorted_matchix(cond::ByPred{typeof(==)}, a, B, perm) = @inbounds @view perm[searchsorted(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
+searchsorted_matchix(cond::ByPred{typeof(>=)}, a, B, perm) = @inbounds @view perm[begin:searchsortedlast(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a))]
+searchsorted_matchix(cond::ByPred{ typeof(>)}, a, B, perm) = @inbounds @view perm[begin:searchsortedfirst(mapview(i -> cond.Rf(B[i]), perm), cond.Lf(a)) - 1]
 
-@inbounds searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(<), typeof(<=)}}, a, B, perm) = @view searchsorted_matchix(cond, a, B, perm)[begin:min(begin, end)]
-@inbounds searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(>), typeof(>=)}}, a, B, perm) = @view searchsorted_matchix(cond, a, B, perm)[max(begin, end):end]
+searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(<), typeof(<=)}}, a, B, perm) = @inbounds @view searchsorted_matchix(cond, a, B, perm)[begin:min(begin, end)]
+searchsorted_matchix_closest(cond::ByPred{<:Union{typeof(>), typeof(>=)}}, a, B, perm) = @inbounds @view searchsorted_matchix(cond, a, B, perm)[max(begin, end):end]
 
 
 # intervals:
 # Sort for member queries
 sort_byf(cond::ByPred{typeof(∋)}) = cond.Rf
 
-@inbounds function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
-    arr = mapview(i -> cond.Rf(B[i]), perm)
+function searchsorted_matchix(cond::ByPred{typeof(∋)}, a, B, perm)
+    arr = mapview(i -> cond.Rf(@inbounds B[i]), perm)
     # like view(perm, searchsorted_in(arr, cond.Lf(a))), but also works with non-array iterable indices
     mapview(i -> perm[i], searchsorted_in(arr, cond.Lf(a)))
 end
@@ -98,9 +98,9 @@ end
 # Sort for subset queries
 sort_byf(cond::ByPred{<:Union{typeof.((⊋, ⊇))...}}) = leftendpoint ∘ cond.Rf
 
-@inbounds function searchsorted_matchix(cond::ByPred{<:Union{typeof.((⊇, ⊋))...}}, a, B, perm)
+function searchsorted_matchix(cond::ByPred{<:Union{typeof.((⊇, ⊋))...}}, a, B, perm)
     leftint = cond.Lf(a)
-    @p begin
+    @inbounds @p begin
         mapview(i -> leftendpoint(cond.Rf(B[i])), perm)
         searchsorted_in(__, leftint)
         @view perm[__]
