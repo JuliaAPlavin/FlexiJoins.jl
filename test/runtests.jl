@@ -188,6 +188,18 @@ function test_modes(modes, args...; kwargs...)
     @testset for mode in [nothing; modes]
         cur = joinindices(args...; kwargs..., mode)
         test_unique_setequal(cur, base)
+
+        if mode != Mode.NestedLoop() && all(!isempty, args[1])
+            LR = map(X -> repeat(X, 200), args[1])
+            cond = args[2]
+            joinindices(LR, Base.tail(args)...; kwargs..., mode)
+            timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+            if cond isa FlexiJoins.ByDistance
+                @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+            else
+                @test Base.gc_alloc_count(timed.gcstats) < 150
+            end
+        end
     end
 end
 
