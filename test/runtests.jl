@@ -66,6 +66,10 @@ using TestItemRunner
         [(O=(obj="A", value=2), M=[(obj="A", time=8), (obj="A", time=12), (obj="A", time=16), (obj="A", time=20)]), (O=(obj="B", value=-5), M=[(obj="B", time=2)]), (O=(obj="D", value=1), M=[]), (O=(obj="E", value=9), M=[]), (O=nothing, M=[(obj="C", time=6), (obj="C", time=9), (obj="C", time=12)])]
     )
     @test isempty(joinindices((;M=measurements, O=objects), by_pred(:time, ∈, x -> (x.value+3)..(x.value-3))))
+    @test joinindices((;M=measurements, O=objects), by_pred(:time, ≈, :value; atol=3)) ==
+        [(M = 5, O = 1), (M = 5, O = 3), (M = 6, O = 4), (M = 1, O = 4), (M = 7, O = 4), (M = 2, O = 4), (M = 8, O = 4)]
+    @test_broken joinindices((;M=measurements, O=objects), by_pred(:time, ≈, :value; atol=3); multi=(M=closest,)) ==
+        [(O=1, M=5), (O=3, M=5), (O=4, M=7)]
     @test joinindices(OM, by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,)) ==
         [(O=1, M=5), (O=3, M=5), (O=4, M=7)]
     @test joinindices(OM, by_pred(:value, <, :time); multi=(M=closest,)) ==

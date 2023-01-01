@@ -33,6 +33,7 @@ by_pred(:time, ∈, :time_range)
 ```
 """
 by_pred(Lf, pred, Rf) = ByPred(normalize_keyfunc(Lf), normalize_keyfunc(Rf), pred)
+by_pred(Lf, pred::typeof(≈), Rf; atol) = by_pred(Lf, ∈, Base.Fix2(±, atol) ∘ Rf)
 
 
 # always supports nested loop
