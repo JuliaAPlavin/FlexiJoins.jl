@@ -18,7 +18,7 @@ normalize_arg(::Nothing, datas; default) = map(Returns(default), datas) |> value
 
 normalize_arg(x, datas; default) = map(Returns(x), datas) |> values
 
-normalize_arg(x::Tuple, datas::NamedTuple; default) = let
+normalize_arg(x::Tuple, datas::Union{NamedTuple, Tuple}; default) = let
 	@assert length(x) == length(datas)
 	x
 end

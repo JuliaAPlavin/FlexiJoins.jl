@@ -58,6 +58,14 @@ measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] f
         joinindices((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3))),
         joinindices((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
     )
+    test_unique_setequal(
+        rightjoin((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3))),
+        rightjoin((;O=objects, M=measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+    )
+    test_unique_setequal(
+        rightjoin((objects, measurements), by_distance(:value, :time, Euclidean(), <=(3))),
+        rightjoin((objects, measurements), by_pred(x -> (x.value-3)..(x.value+3), ∋, :time)),
+    )
     @test joinindices((;O=objects, M=measurements), by_distance(:value, :time, Euclidean(), <=(3)); multi=(M=closest,)) ==
         [(O=1, M=5), (O=3, M=5), (O=4, M=7)]
     @test joinindices((;O=objects, M=measurements), by_pred(:value, <, :time); multi=(M=closest,)) ==
