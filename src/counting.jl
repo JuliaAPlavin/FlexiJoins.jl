@@ -1,10 +1,14 @@
-cardinality_ok(cnt::Integer, card::Integer) = cnt == card
-cardinality_ok(cnt::Integer, card::UnitRange{<:Integer}) = cnt ∈ card
-cardinality_ok(cnt::Integer, ::typeof(*)) = true
-cardinality_ok(cnt::Nothing, ::typeof(*)) = true
-cardinality_ok(cnt::Integer, ::typeof(+)) = cnt > 0
+normalize_cardinality(card::Integer) = ==(card)
+normalize_cardinality(card::UnitRange{<:Integer}) = ∈(card)
+normalize_cardinality(::typeof(+)) = >(0)
+normalize_cardinality(::typeof(*)) = Returns(true)
 
-cardinality_check(cnt, card) = cardinality_ok(cnt, card) || throw(ArgumentError("Cardinality exceeded: got $(_fmt_num(cnt)), expected $card"))
+card_string(f::Returns{Bool}) = (@assert f.x; "any")
+card_string(f::Base.Fix2{typeof(==)}) = string(f.x)
+card_string(f::Base.Fix2{typeof(∈)}) = string(f.x)
+card_string(f::Base.Fix2{typeof(>)}) = ">($(f.x))"
+
+cardinality_check(cnt, card) = card(cnt) || throw(ArgumentError("Cardinality exceeded: got $(_fmt_num(cnt)), expected $(card_string(card))"))
 _fmt_num(x) = x
 _fmt_num(x::Integer) = Int(x)
 
@@ -21,10 +25,13 @@ create_zero(::Type{Nothing}) = nothing
 
 min_cnt_type_nonmatches(::typeof(drop)) = Nothing
 min_cnt_type_nonmatches(::typeof(keep)) = Bool
-min_cnt_type_cardinality(::typeof(*)) = Nothing
-min_cnt_type_cardinality(::typeof(+)) = Bool
-min_cnt_type_cardinality(x::Integer) = x == 0 ? Nothing : x == 1 ? Bool : (@assert 0 <= x < typemax(Int8); Int8)
-min_cnt_type_cardinality(x::AbstractVector) = (@assert minimum(x) >= 0; min_cnt_type_cardinality(maximum(x)))
+
+min_cnt_type_cardinality(::Returns{Bool}) = Nothing
+min_cnt_type_cardinality(f::Base.Fix2{typeof(in),<:AbstractVector}) = (@assert minimum(f.x) >= 0; min_cnt_type_cardinality(==(maximum(f.x))))
+min_cnt_type_cardinality(f::Base.Fix2{typeof(in),<:Integer}) = min_cnt_type_cardinality(==(f.x))
+min_cnt_type_cardinality(f::Base.Fix2{typeof(==),<:Integer}) = f.x == 0 ? Nothing : f.x == 1 ? Bool : (@assert 0 <= f.x < typemax(Int8); Int8)
+min_cnt_type_cardinality(f::Base.Fix2{typeof(>),<:Integer}) = (@assert f.x == 0; Bool)
+
 min_cnt_type_promote(::Type{Ta}, ::Type{Tb}) where {Ta, Tb} = sizeof(Ta) > sizeof(Tb) ? Ta : Tb
 
 add_to_cnt!(cnts, ix, val, cardinality) = add_to_cnt!(eltype(cnts), cnts, ix, val, cardinality)

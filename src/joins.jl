@@ -48,7 +48,7 @@ function _joinindices(datas, cond; multi=nothing, nonmatches=nothing, groupby=no
         normalize_arg(multi, datas; default=identity),
         normalize_arg(nonmatches, datas; default=drop),
         normalize_joinside(groupby, datas),
-        normalize_arg(cardinality, datas; default=*),
+        map(normalize_cardinality, normalize_arg(cardinality, datas; default=*)),
         mode,
         cache,
         normalize_joinside(loop_over_side, datas),
