@@ -48,7 +48,7 @@ findmatchix(mode::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >)).
 
 # support Hash for equality and subset
 supports_mode(::Mode.Hash, ::ByPred{<:_EQUAL_F}, datas) = true
-supports_mode(::Mode.Hash, cond::ByPred{typeof(∋)}, datas) = Base.isiterable(Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}))
+supports_mode(::Mode.Hash, cond::ByPred{typeof(∋)}, datas) = Base.isiterable(Core.Compiler.return_type(cond.Lf, Tuple{eltype(datas[1])}))
 
 # order predicates: support Sort
 supports_mode(::Mode.SortChain, ::ByPred{<:_EQUAL_F}, datas) = true
@@ -56,10 +56,10 @@ supports_mode(::Mode.Sort, ::ByPred{<:Union{typeof.((<, <=, >=, >, ∋))...}}, d
 
 # intervals set-operations: subset support Sort
 supports_mode(::Mode.Sort, cond::ByPred{<:Union{typeof.((⊋, ⊇))...}}, datas) =
-    Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}) <: Interval &&  Core.Compiler.return_type(cond.Rf, Tuple{valtype(datas[2])}) <: Interval
+    Core.Compiler.return_type(cond.Lf, Tuple{eltype(datas[1])}) <: Interval &&  Core.Compiler.return_type(cond.Rf, Tuple{eltype(datas[2])}) <: Interval
 # overlap supports Tree
 supports_mode(::Mode.Tree, cond::ByPred{typeof((!) ∘ isdisjoint)}, datas) =
-    Core.Compiler.return_type(cond.Lf, Tuple{valtype(datas[1])}) <: Interval &&  Core.Compiler.return_type(cond.Rf, Tuple{valtype(datas[2])}) <: Interval
+    Core.Compiler.return_type(cond.Lf, Tuple{eltype(datas[1])}) <: Interval &&  Core.Compiler.return_type(cond.Rf, Tuple{eltype(datas[2])}) <: Interval
 
 
 # Hash implementation

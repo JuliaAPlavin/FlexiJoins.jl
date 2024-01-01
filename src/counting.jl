@@ -27,9 +27,9 @@ min_cnt_type_cardinality(x::Integer) = x == 0 ? Nothing : x == 1 ? Bool : (@asse
 min_cnt_type_cardinality(x::AbstractVector) = (@assert minimum(x) >= 0; min_cnt_type_cardinality(maximum(x)))
 min_cnt_type_promote(::Type{Ta}, ::Type{Tb}) where {Ta, Tb} = sizeof(Ta) > sizeof(Tb) ? Ta : Tb
 
-add_to_cnt!(cnts, ix, val, cardinality) = add_to_cnt!(valtype(cnts), cnts, ix, val, cardinality)
+add_to_cnt!(cnts, ix, val, cardinality) = add_to_cnt!(eltype(cnts), cnts, ix, val, cardinality)
 function add_to_cnt!(::Type{<:Integer}, cnts, ix, val, cardinality)
     cardinality_check(cnts[ix] + val, cardinality)
-    cnts[ix] = min(cnts[ix] + val, typemax(valtype(cnts)))
+    cnts[ix] = min(cnts[ix] + val, typemax(eltype(cnts)))
 end
 add_to_cnt!(::Type{Nothing}, cnts, ix, val, cardinality) = cardinality_check(1, cardinality)

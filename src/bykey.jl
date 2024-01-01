@@ -64,7 +64,7 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
 
     ngroups = 0
     groups = _similar(X, Int)
-    dct = Dict{Core.Compiler.return_type(keyfunc, Tuple{valtype(X)}), Int}()
+    dct = Dict{Core.Compiler.return_type(keyfunc, Tuple{eltype(X)}), Int}()
     @inbounds for (i, x) in pairs(X)
         group_id = get!(dct, keyfunc(x), ngroups + 1)
         if group_id == ngroups + 1
@@ -100,7 +100,7 @@ end
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first), typeof(last)})
     keyfunc = last(cond.keyfuncs)
     dct = Dict{
-        Core.Compiler.return_type(keyfunc, Tuple{valtype(X)}),
+        Core.Compiler.return_type(keyfunc, Tuple{eltype(X)}),
         keytype(X)
     }()
     for (i, x) in pairs(X)
