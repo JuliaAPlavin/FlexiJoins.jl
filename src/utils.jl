@@ -9,7 +9,7 @@ myview(A::VIEWTYPES, I::AbstractArray) = myview(parent(A), only(parentindices(A)
 myview(A::VIEWTYPES, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
 myview(A,            Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
 myview(A::NamedTuple{NS}, I::StructArray{<:NamedTuple}) where {NS} =
-    if :_ ∈ NS
+    if any(∈(NS), (:_, :__, :___))
         merge(
             map(NS) do k
                 if k ∈ (:_, :__, :___)
