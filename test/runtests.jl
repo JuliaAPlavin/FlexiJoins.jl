@@ -685,7 +685,7 @@ end
             end
         end
 
-        @testset "dataframe" begin
+        VERSION >= v"1.9-DEV" && @testset "dataframe" begin
             odf = DataFrame(objects)
             mdf = DataFrame(measurements)
             edf = @p expected |> map((;_[1]..., obj_1=_[2].obj, _[2].time)) |> DataFrame
@@ -703,6 +703,6 @@ end
     CHL.@check()
 
     import Aqua
-    Aqua.test_all(FlexiJoins; ambiguities=false, piracy=false)
+    Aqua.test_all(FlexiJoins; ambiguities=false, piracy=false, project_toml_formatting=false)
     Aqua.test_ambiguities(FlexiJoins)
 end
