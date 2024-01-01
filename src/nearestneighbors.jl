@@ -19,9 +19,9 @@ end
 
 
 # helpers
-wrap_matrix(X::Vector{<:AbstractVector}) = X
-wrap_matrix(X::Vector{<:AbstractFloat}) = reshape(X, (1, :))
-wrap_matrix(X::Vector{<:Integer}) = wrap_matrix(map(float, X))
+wrap_matrix(X::AbstractVector{<:AbstractVector}) = X
+wrap_matrix(X::AbstractVector{<:AbstractFloat}) = reshape(X, (1, :))
+wrap_matrix(X::AbstractVector{<:Integer}) = wrap_matrix(map(float, X))
 
 wrap_vector(X::AbstractVector{<:Number}) = X
 wrap_vector(X::Number) = MaybeVector{typeof(X)}(X)
