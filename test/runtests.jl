@@ -330,31 +330,40 @@ end
 end
 
 @testitem "cardinality" begin
-    OM = (;O=["A", "B", "D", "E"], M=["A", "A", "B", "C", "C", "C"])
+    OM = (;O=["A", "B", "D", "E"], M=["A", "A", "B", "B", "C", "C", "C"])
 
     J = joinindices(OM, by_key(identity))
+    @test joinindices(OM, by_key(identity); cardinality=*) == J
     @test joinindices(OM, by_key(identity); cardinality=(M=*,)) == J
     @test joinindices(OM, by_key(identity); cardinality=(M=0:4,)) == J
     @test joinindices(OM, by_key(identity); cardinality=(O=0:1,)) == J
     @test joinindices(OM, by_key(identity); cardinality=(M=0:4, O=0:1)) == J
     @test joinindices(OM, by_key(identity); cardinality=(0:1, 0:4)) == J
-    @test_throws "got 2, expected 1" joinindices(OM, by_key(identity); cardinality=(O=1, M=1))
-    @test_throws "got 1, expected 0" joinindices(OM, by_key(identity); cardinality=(O=*, M=0))
-    @test_throws "got 1, expected 0" joinindices(OM, by_key(identity); cardinality=(O=0, M=*))
-    @test_throws "got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O=*, M=+))
-    @test_throws "got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O=+, M=*))
-    @test_throws "got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O=+, M=+))
-    @test_throws "got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(M=+,))
-    @test_throws "got 2, expected 0:1" joinindices(OM, by_key(identity); cardinality=(M=0:1,))
-    @test_throws "got 0, expected 1:3" joinindices(OM, by_key(identity); cardinality=(O=1:3,))
+    @test_throws "exceeded: got 2, expected 1" joinindices(OM, by_key(identity); cardinality=(O=1, M=1))
+    @test_throws "exceeded: got 1, expected 0" joinindices(OM, by_key(identity); cardinality=(O=*, M=0))
+    @test_throws "exceeded: got 1, expected 0" joinindices(OM, by_key(identity); cardinality=(O=0, M=*))
+    @test_throws "mismatch: got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O=*, M=+))
+    @test_throws "mismatch: got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O=+, M=*))
+    @test_throws "mismatch: got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O=+, M=+))
+    @test_throws "mismatch: got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(M=+,))
+    @test_throws "exceeded: got 2, expected 0:1" joinindices(OM, by_key(identity); cardinality=(M=0:1,))
+    @test_throws "mismatch: got 0, expected 1:3" joinindices(OM, by_key(identity); cardinality=(O=1:3,))
 
     J = joinindices((;O=OM.O, O2=OM.O), by_key(identity))
     @test joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=1) == J
     @test joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, 1)) == J
     @test joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, +)) == J
     @test joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(O=+,)) == J
-    @test_throws "got 1, expected 0" joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, 0))
-    @test_throws "got 1, expected 2:100" joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, 2:100))
+    @test_throws "exceeded: got 1, expected 0" joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, 0))
+    @test_throws "mismatch: got 1, expected 2:100" joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, 2:100))
+
+    J = joinindices((;M=OM.M, M2=OM.M), by_key(identity))
+    @test joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=2:3) == J
+    @test joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(2:4, 2:3)) == J
+    @test joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(2:3, +)) == J
+    @test joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(M=+,)) == J
+    @test_throws "exceeded: got 1, expected 0" joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(1, 0))
+    @test_throws "mismatch: got 2, expected 3:100" joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(*, 3:100))
 end
 
 @testitem "show" begin

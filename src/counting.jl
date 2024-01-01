@@ -8,7 +8,13 @@ card_string(f::Base.Fix2{typeof(==)}) = string(f.x)
 card_string(f::Base.Fix2{typeof(∈)}) = string(f.x)
 card_string(f::Base.Fix2{typeof(>)}) = ">($(f.x))"
 
-cardinality_check(cnt, card) = card(cnt) || throw(ArgumentError("Cardinality exceeded: got $(_fmt_num(cnt)), expected $(card_string(card))"))
+intermediate(f::Returns) = f
+intermediate(f::Base.Fix2{typeof(==)}) = ≤(f.x)
+intermediate(f::Base.Fix2{typeof(∈),<:AbstractRange}) = ≤(maximum(f.x))
+intermediate(f::Base.Fix2{typeof(>)}) = Returns(true)
+
+cardinality_check_intermediate(cnt, card) = intermediate(card)(cnt) || throw(ArgumentError("Cardinality exceeded: got $(_fmt_num(cnt)), expected $(card_string(card))"))
+cardinality_check_final(cnt, card) = card(cnt) || throw(ArgumentError("Cardinality mismatch: got $(_fmt_num(cnt)), expected $(card_string(card))"))
 _fmt_num(x) = x
 _fmt_num(x::Integer) = Int(x)
 
@@ -36,7 +42,7 @@ min_cnt_type_promote(::Type{Ta}, ::Type{Tb}) where {Ta, Tb} = sizeof(Ta) > sizeo
 
 add_to_cnt!(cnts, ix, val, cardinality) = add_to_cnt!(eltype(cnts), cnts, ix, val, cardinality)
 function add_to_cnt!(::Type{<:Integer}, cnts, ix, val, cardinality)
-    cardinality_check(cnts[ix] + val, cardinality)
+    cardinality_check_intermediate(cnts[ix] + val, cardinality)
     cnts[ix] = min(cnts[ix] + val, typemax(eltype(cnts)))
 end
-add_to_cnt!(::Type{Nothing}, cnts, ix, val, cardinality) = cardinality_check(1, cardinality)
+add_to_cnt!(::Type{Nothing}, cnts, ix, val, cardinality) = cardinality_check_intermediate(1, cardinality)
