@@ -197,6 +197,7 @@ end
         @test J2.J.M1 == J3.M1
         @test J2.M2 == J3.M2
         @test innerjoin((__=J1, M2=measurements), by_key(:obj ∘ :O, :obj)) == J3
+        @test_broken innerjoin((__=J1, M2=measurements), by_key(O=:obj, M2=:obj)) == J3  # should this work?
 
         J4 = innerjoin((_=J1, __=StructArray(measurements)), by_key(:obj ∘ :O, :obj))
         @test J2.J.O == J4.O
