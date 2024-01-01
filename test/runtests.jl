@@ -650,6 +650,48 @@ end
     @test normalize_arg(by_key(A=@optic(_.name), B=:obj), (A=[], B=[])) == ByKey((@optic(_.name), @optic(_.obj)))
 end
 
+@testitem "skycoords" begin
+    using SkyCoords
+    using FlexiJoins: Mode
+
+    function test_unique_setequal(a, b)
+        @test allunique(a)
+        @test allunique(b)
+        @test issetequal(a, b)
+    end
+
+    function test_modes(modes, args...; alloc=true, kwargs...)
+        base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
+        @testset for mode in [nothing; modes]
+            cur = joinindices(args...; kwargs..., mode)
+            test_unique_setequal(cur, base)
+
+            if alloc && mode != Mode.NestedLoop() && all(!isempty, args[1])
+                LR = map(X -> repeat(X, 200), args[1])
+                cond = args[2]
+                joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                if cond isa FlexiJoins.ByDistance
+                    @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+                else
+                    @test Base.gc_alloc_count(timed.gcstats) < 150
+                end
+            end
+        end
+    end
+
+    sides = (
+        L=[ICRSCoords(0, 0), ICRSCoords(0, 0.5), ICRSCoords(0, 1), ICRSCoords(0.5, 0), ICRSCoords(0.5, 0.5), ICRSCoords(0.5, 1), ICRSCoords(1, 0), ICRSCoords(1, 0.5), ICRSCoords(1, 1)],
+        R=[ICRSCoords(4, 0), ICRSCoords(4, 0.5), ICRSCoords(4, 1), ICRSCoords(4.5, 0), ICRSCoords(5.5, 0.5), ICRSCoords(6, 1), ICRSCoords(6, 0), ICRSCoords(6, 0.5), ICRSCoords(6, 1)],
+    )
+    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], sides, by_distance(identity, separation, <=(0.7)))
+    sides = (
+        L=[ICRSCoords(0, 0), ICRSCoords(0, 0.5), ICRSCoords(0, 1), ICRSCoords(0.5, 0), ICRSCoords(0.5, 0.5), ICRSCoords(0.5, 1), ICRSCoords(1, 0), ICRSCoords(1, 0.5), ICRSCoords(1, 1)],
+        R=[GalCoords(4, 0), GalCoords(4, 0.5), GalCoords(4, 1), GalCoords(4.5, 0), GalCoords(5.5, 0.5), GalCoords(6, 1), GalCoords(6, 0), GalCoords(6, 0.5), GalCoords(6, 1)],
+    )
+    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], sides, by_distance(identity, separation, <=(0.7)))
+end
+
 @testitem "other dataset types" begin
     using FlexiJoins: Mode
     using DataPipes
