@@ -700,7 +700,7 @@ end
             end
         end
 
-        VERSION >= v"1.9-DEV" && @testset "dataframe" begin
+        @testset "dataframe" begin
             odf = DataFrame(objects)
             mdf = DataFrame(measurements)
             edf = @p expected |> map((;_[1]..., obj_1=_[2].obj, _[2].time)) |> DataFrame
