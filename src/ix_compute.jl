@@ -21,12 +21,12 @@ function _fill_ix_array!(mode, IXs, datas, cond, multi::Tuple{typeof(identity), 
     append_nonmatchix!(IXs, ix_seen_cnts, nonmatches, groupby)
 end
 
-append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing) = 
+@inline append_matchix!(IXs, (ix_1, IX_2), nonmatches, groupby::Nothing) = 
     foreach_inbounds(IX_2) do ix_2
         push!(IXs, (ix_1, ix_2))
     end
-append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::Val{1}) = isempty(IX_2) || push!(IXs, NoConvert((ix_1, IX_2)))
-append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::Val{1}) = push!(IXs, NoConvert((ix_1, IX_2)))
+@inline append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(drop), groupby::Val{1}) = isempty(IX_2) || push!(IXs, NoConvert((ix_1, IX_2)))
+@inline append_matchix!(IXs, (ix_1, IX_2), nonmatches::typeof(keep), groupby::Val{1}) = push!(IXs, NoConvert((ix_1, IX_2)))
 
 function append_nonmatchix!(IXs, ix_seen_cnts, nonmatches::Tuple{typeof(keep), typeof(drop)}, groupby::Nothing)
     for (ix_1, cnt) in pairs(ix_seen_cnts[1])
