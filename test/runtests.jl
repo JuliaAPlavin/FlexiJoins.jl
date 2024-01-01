@@ -219,6 +219,21 @@ end
         @test J2.J.M1 == J3.M1
         @test J2.M2 == J3.M2
     end
+
+    @testset "non-innerjoin" begin
+        J1 = innerjoin((O=objects, M1=measurements), by_key(:obj); groupby=:O)
+        J2 = leftjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
+        J3 = leftjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
+        @test J2.J.O == J3.O
+        @test J2.J.M1 == J3.M1
+        @test J2.M2 == J3.M2
+
+        J2 = rightjoin((J=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
+        J3 = rightjoin((_=J1, M2=measurements), by_key(:obj ∘ :O, :obj))
+        @test map(r -> isnothing(r) ? nothing : r.O, J2.J) == J3.O
+        @test map(r -> isnothing(r) ? nothing : r.M1, J2.J) == J3.M1
+        @test J2.M2 == J3.M2
+    end
 end
 
 @testitem "types" begin

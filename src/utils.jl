@@ -5,9 +5,7 @@ materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArr
 materialize_views(A) = A
 
 myview(A, I::AbstractArray) = sentinelview(A, I, nothing)
-myview(A::VIEWTYPES, I::AbstractArray) = myview(parent(A), only(parentindices(A))[I])
-myview(A::VIEWTYPES, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
-myview(A,            Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
+myview(A, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
 myview(A::NamedTuple{NS}, I::StructArray{<:NamedTuple}) where {NS} =
     if any(∈(NS), (:_, :__, :___))
         merge(
