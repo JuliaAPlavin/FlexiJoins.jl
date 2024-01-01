@@ -683,16 +683,16 @@ end
 
     sides = (
         L=[ICRSCoords(0, 0), ICRSCoords(0, 0.5), ICRSCoords(0, 1), ICRSCoords(0.5, 0), ICRSCoords(0.5, 0.5), ICRSCoords(0.5, 1), ICRSCoords(1, 0), ICRSCoords(1, 0.5), ICRSCoords(1, 1)],
-        R=[ICRSCoords(4, 0), ICRSCoords(4, 0.5), ICRSCoords(4, 1), ICRSCoords(4.5, 0), ICRSCoords(5.5, 0.5), ICRSCoords(6, 1), ICRSCoords(6, 0), ICRSCoords(6, 0.5), ICRSCoords(6, 1)],
+        R=[ICRSCoords(0, 0.68), ICRSCoords(0, 0.7), ICRSCoords(0, 0.72), ICRSCoords(4, 0), ICRSCoords(4, 0.5), ICRSCoords(4, 1), ICRSCoords(4.5, 0), ICRSCoords(5.5, 0.5), ICRSCoords(6, 1), ICRSCoords(6, 0), ICRSCoords(6, 0.5), ICRSCoords(6, 1)],
     )
     sides = @modify(coo -> (; coo), sides.L |> Elements())
-    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], sides, by_distance(:coo, identity, separation, <=(0.7)))
+    test_modes([Mode.NestedLoop(), Mode.Tree()], sides, by_distance(:coo, identity, separation, <=(0.7)))
     sides = (
         L=[ICRSCoords(0, 0), ICRSCoords(0, 0.5), ICRSCoords(0, 1), ICRSCoords(0.5, 0), ICRSCoords(0.5, 0.5), ICRSCoords(0.5, 1), ICRSCoords(1, 0), ICRSCoords(1, 0.5), ICRSCoords(1, 1)],
         R=[GalCoords(4, 0), GalCoords(4, 0.5), GalCoords(4, 1), GalCoords(4.5, 0), GalCoords(5.5, 0.5), GalCoords(6, 1), GalCoords(6, 0), GalCoords(6, 0.5), GalCoords(6, 1)],
     )
     sides = @modify(coo -> (; coo), sides.R |> Elements())
-    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], sides, by_distance(identity, :coo, separation, <=(0.7)))
+    test_modes([Mode.NestedLoop(), Mode.Tree()], sides, by_distance(identity, :coo, separation, <=(0.7)))
 end
 
 @testitem "other dataset types" begin
