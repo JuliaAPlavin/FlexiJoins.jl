@@ -9,7 +9,7 @@ Base.show(io::IO, x::Drop) = write(io, "drop")
 
 normalize_joinside(x::Nothing, datas) = x
 normalize_joinside(x::Integer, datas::Union{Tuple, NamedTuple}) = Val(x)
-normalize_joinside(x::Symbol, datas::NamedTuple{NS}) where {NS} = Val(findfirst(==(x), NS))
+normalize_joinside(x::Symbol, datas::NamedTuple{NS}) where {NS} = Val(@something(findfirst(==(x), NS), error("NamedTuple{$NS} has no field $x")))
 
 normalize_arg(::Nothing, datas; default) = ntuple(Returns(default), length(datas))
 normalize_arg(x::JoinCondition, datas) = x

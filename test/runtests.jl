@@ -79,8 +79,9 @@ using TestItemRunner
     @test joinindices(OM, by_key(:obj) & by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=1), (O=2, M=5)]
 
-    @test_throws ErrorException joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
-    @test_throws ErrorException joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), groupby=:M)
+    @test_throws "arguments don't make sense together" joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+    @test_throws "Unsupported parameter combination" joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), groupby=:M)
+    @test_throws "has no field XXX" joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), groupby=:XXX)
 end
 
 @testitem "not_same" begin
