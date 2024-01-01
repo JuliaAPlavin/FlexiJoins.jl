@@ -4,6 +4,10 @@ cardinality_ok(cnt::Integer, ::typeof(*)) = true
 cardinality_ok(cnt::Nothing, ::typeof(*)) = true
 cardinality_ok(cnt::Integer, ::typeof(+)) = cnt > 0
 
+cardinality_check(cnt, card) = cardinality_ok(cnt, card) || throw(ArgumentError("Cardinality exceeded: got $(_fmt_num(cnt)), expected $card"))
+_fmt_num(x) = x
+_fmt_num(x::Integer) = Int(x)
+
 create_cnts(datas, nonmatches, cardinality) = Base.Cartesian.@ntuple 2 i -> let
     T = min_cnt_type_promote(
         min_cnt_type_nonmatches(nonmatches[i]),
@@ -25,7 +29,7 @@ min_cnt_type_promote(::Type{Ta}, ::Type{Tb}) where {Ta, Tb} = sizeof(Ta) > sizeo
 
 add_to_cnt!(cnts, ix, val, cardinality) = add_to_cnt!(valtype(cnts), cnts, ix, val, cardinality)
 function add_to_cnt!(::Type{<:Integer}, cnts, ix, val, cardinality)
-    @assert cardinality_ok(cnts[ix] + val, cardinality)
+    cardinality_check(cnts[ix] + val, cardinality)
     cnts[ix] = min(cnts[ix] + val, typemax(valtype(cnts)))
 end
-add_to_cnt!(::Type{Nothing}, cnts, ix, val, cardinality) = @assert cardinality_ok(1, cardinality)
+add_to_cnt!(::Type{Nothing}, cnts, ix, val, cardinality) = cardinality_check(1, cardinality)

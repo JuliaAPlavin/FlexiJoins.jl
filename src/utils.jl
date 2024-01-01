@@ -1,56 +1,13 @@
-struct SentinelView{T, N, A, I, TS} <: AbstractArray{T, N}
-    parent::A
-    indices::I
-    sentinel::TS
-end
-
-function SentinelView(A, I, sentinel)
-    @assert !(sentinel isa keytype(A))
-    SentinelView{
-        if eltype(I) <: keytype(A)
-            valtype(A)
-        elseif eltype(I) <: Union{keytype(A), typeof(sentinel)}
-            Union{valtype(A), typeof(sentinel)}
-        else
-            error()
-        end,
-        ndims(I),
-        typeof(A),
-        typeof(I),
-        typeof(sentinel)
-    }(A, I, sentinel)
-end
-
-function sentinel_view(A, I, sentinel)
-    @assert !(sentinel isa keytype(A))
-    if A isa AbstractArray && eltype(I) <: keytype(A)
-        view(A, I)
-    else
-        SentinelView(A, I, sentinel)
-    end
-end
-
-Base.IndexStyle(::Type{SentinelView{T, N, A, I}}) where {T, N, A, I} = IndexStyle(I)
-Base.axes(a::SentinelView) = axes(a.indices)
-Base.size(a::SentinelView) = size(a.indices)
-
-Base.@propagate_inbounds function Base.getindex(a::SentinelView, is::Int...)
-    I = a.indices[is...]
-    I === a.sentinel ? a.sentinel : a.parent[I]
-end
-
-Base.parent(a::SentinelView) = a.parent
-Base.parentindices(a::SentinelView) = (a.indices,)
-
 const VIEWTYPES = Union{SubArray, SentinelView}
 
+materialize_views(A::AbstractArray) = map(materialize_views, A)
+materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
+materialize_views(A) = A
 
-myview(A, I::AbstractArray) = sentinel_view(A, I, nothing)
-myview(A::VIEWTYPES, I::AbstractArray) = myview(parent(A), only(parentindices(A))[I])
-myview(A::VIEWTYPES, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)  # same as below, for disambiguation
-myview(A,            Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
+myview(A, I::AbstractArray) = sentinelview(A, I, nothing)
+myview(A, Is::AbstractArray{<:AbstractArray}) = map(I -> myview(A, I), Is)
 myview(A::NamedTuple{NS}, I::StructArray{<:NamedTuple}) where {NS} =
-    if :_ ∈ NS
+    if any(∈(NS), (:_, :__, :___))
         merge(
             map(NS) do k
                 if k ∈ (:_, :__, :___)
@@ -71,13 +28,6 @@ myview(A::Tuple, I::StructArray{<:Tuple}) =
     map(A, StructArrays.components(I)) do A, I
         myview(A, I)
     end |> StructArray
-
-
-materialize_views(A::StructArray) = StructArray(map(materialize_views, StructArrays.components(A)))
-materialize_views(A::VIEWTYPES) = collect(A)
-materialize_views(A::AbstractArray{<:VIEWTYPES}) = map(materialize_views, A)
-materialize_views(A::AbstractArray{<:StructArray}) = map(materialize_views, A)
-materialize_views(A) = A
 
 
 
@@ -106,15 +56,7 @@ end
     f(a)
 end
 
-# "view" that works with array of indices (regular view) and with iterable of indices (iterator)
-_do_view(A, I::AbstractArray) = @view A[I]
-_do_view(A, I) = @p I |> Iterators.map(A[_])
-
 firstn_by!(A::AbstractVector, n=1; by) = view(partialsort!(A, 1:min(n, length(A)); by), 1:min(n, length(A)))
-
-# Base.eltype returns Any for mapped/flattened iterators
-_eltype(A::AbstractArray) = eltype(A)
-_eltype(A::T) where {T} = Core.Compiler.return_type(first, Tuple{T})
 
 
 # workaround for https://github.com/JuliaArrays/StructArrays.jl/issues/228

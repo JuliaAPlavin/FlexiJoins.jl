@@ -60,7 +60,7 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
     _joinindices(datas, cond, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side)
 end
 
-_joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side::StaticInt{2}) = 
+_joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side::Val{2}) = 
     _joinindices(
         swap_sides(datas),
         swap_sides(cond),
@@ -70,10 +70,10 @@ _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, grou
         swap_sides(cardinality),
         mode,
         cache,
-        StaticInt(1),
+        Val(1),
     ) |> swap_sides
 
-function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side::StaticInt{1})
+function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatches, groupby, cardinality, mode, cache, loop_over_side::Val{1})
     if any(@. multi !== identity && nonmatches !== drop)
         error("Values of arguments don't make sense together: ", (; nonmatches, multi))
     end
@@ -90,18 +90,18 @@ function which_side_first(datas, cond, multi::Tuple{typeof(identity), typeof(ide
     if !isnothing(mode_1) && !isnothing(mode_2)
         preferred_first_side(datas, cond, (mode_1, mode_2))
     elseif !isnothing(mode_1)
-        StaticInt(1)
+        Val(1)
     elseif !isnothing(mode_2)
-        StaticInt(2)
+        Val(2)
     else
         error("No known mode supported by $cond")
     end
 end
-which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Nothing, cardinality, mode) = StaticInt(1)
-which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, groupby::Nothing, cardinality, mode) = StaticInt(2)
-which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::StaticInt{1}, cardinality, mode) = StaticInt(1)
-which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, groupby::StaticInt{2}, cardinality, mode) = StaticInt(2)
+which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Nothing, cardinality, mode) = Val(1)
+which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, groupby::Nothing, cardinality, mode) = Val(2)
+which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Val{1}, cardinality, mode) = Val(1)
+which_side_first(datas, cond, multi::Tuple{Any, typeof(identity)}, nonmatches, groupby::Val{2}, cardinality, mode) = Val(2)
 which_side_first(datas, cond, multi, nonmatches, groupby, cardinality, mode) = error("Unsupported parameter combination")
 
 preferred_first_side(datas, cond, modes::Tuple{M, M}) where {M} = preferred_first_side(datas, cond, first(modes))
-preferred_first_side(datas, cond, mode) = StaticInt(1)
+preferred_first_side(datas, cond, _) = Val(findmax(length, datas)[2])

@@ -453,6 +453,8 @@ md"""
 DataFrames don't support the common Julia collection interface, and are automatically converted by `FlexiJoins`. \
 This conversion is completely transparent to the user, who passes DataFrames and gets a DataFrame as the join results. \
 Moreover, it shouldn't entail an extra data copy: DataFrame columns are utilized as-is.
+
+This functionality is experimental and subject to change.
 """
 
 # ╔═╡ 4ccc1394-328e-4370-9095-10fdfbf8f48f
