@@ -659,13 +659,19 @@ end
     using Dictionaries
     using DataFrames
 
+    # https://github.com/JuliaLang/julia/pull/49179
+    Base.keytype(@nospecialize t::Tuple) = keytype(typeof(t))
+    Base.keytype(@nospecialize T::Type{<:Tuple}) = Int
+    Base.valtype(@nospecialize t::Tuple) = valtype(typeof(t))
+    Base.valtype(@nospecialize T::Type{<:Tuple}) = eltype(T)
+
     objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
     measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
     expected = [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
 
     @testset for mode in [nothing, Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]
         @testset "tuple" begin
-            @test_broken flexijoin((Tuple(objects), Tuple(measurements)), by_key(:obj); mode) == expected
+            @test flexijoin((Tuple(objects), Tuple(measurements)), by_key(:obj); mode) == expected
         end
 
         @testset "pairs" begin
