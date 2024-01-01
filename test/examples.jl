@@ -454,7 +454,7 @@ DataFrames don't support the common Julia collection interface, and are automati
 This conversion is completely transparent to the user, who passes DataFrames and gets a DataFrame as the join results. \
 Moreover, it shouldn't entail an extra data copy: DataFrame columns are utilized as-is.
 
-This functionality is experimental and subject to change.
+This functionality is experimental and subject to change. Note: starting from `FlexiJoins@0.1.30`, joining `DataFrame`s is supported on Julia 1.9+, not on earlier versions. Please, pin `FlexiJoins` to an earlier version (at most `0.1.29`), if you use Julia 1.8 or earlier and want to use `FlexiJoins` with `DataFrames`.
 """
 
 # ╔═╡ 4ccc1394-328e-4370-9095-10fdfbf8f48f
