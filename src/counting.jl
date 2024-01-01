@@ -2,6 +2,7 @@ normalize_cardinality(card::Integer) = ==(card)
 normalize_cardinality(card::UnitRange{<:Integer}) = ∈(card)
 normalize_cardinality(::typeof(+)) = >(0)
 normalize_cardinality(::typeof(*)) = Returns(true)
+normalize_cardinality(card::Function) = card
 
 card_string(f::Returns{Bool}) = (@assert f.x; "any")
 card_string(f::Base.Fix2{typeof(==)}) = string(f.x)
