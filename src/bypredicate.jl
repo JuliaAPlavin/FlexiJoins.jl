@@ -22,6 +22,7 @@ swap_sides(::typeof(⊊)) = ⊋
 swap_sides(::typeof(⊋)) = ⊊
 swap_sides(::typeof(⊇)) = ⊆
 swap_sides(f::ComposedFunction{typeof(!), typeof(isdisjoint)}) = f
+swap_sides(f::Function) = (a, b) -> f(b, a)
 
 """
     by_pred(f_L, pred, f_R)
