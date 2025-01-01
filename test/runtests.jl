@@ -400,11 +400,11 @@ end
                 LR = map(X -> repeat(X, 200), args[1])
                 cond = args[2]
                 joinindices(LR, Base.tail(args)...; kwargs..., mode)
-                timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                allocs = @allocations joinindices(LR, Base.tail(args)...; kwargs..., mode)
                 if cond isa FlexiJoins.ByDistance
-                    @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+                    @test_broken allocs < 150
                 else
-                    @test Base.gc_alloc_count(timed.gcstats) < 150
+                    @test allocs < 150
                 end
             end
         end
@@ -611,11 +611,11 @@ end
                 LR = map(X -> repeat(X, 200), args[1])
                 cond = args[2]
                 joinindices(LR, Base.tail(args)...; kwargs..., mode)
-                timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                allocs = @allocations joinindices(LR, Base.tail(args)...; kwargs..., mode)
                 if cond isa FlexiJoins.ByDistance
-                    @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+                    @test_broken allocs < 150
                 else
-                    @test Base.gc_alloc_count(timed.gcstats) < 150
+                    @test allocs < 150
                 end
             end
         end
@@ -685,11 +685,11 @@ end
                 LR = map(X -> repeat(X, 200), args[1])
                 cond = args[2]
                 joinindices(LR, Base.tail(args)...; kwargs..., mode)
-                timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                allocs = @allocations joinindices(LR, Base.tail(args)...; kwargs..., mode)
                 if cond isa FlexiJoins.ByDistance
-                    @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+                    @test_broken allocs < 150
                 else
-                    @test Base.gc_alloc_count(timed.gcstats) < 150
+                    @test allocs < 150
                 end
             end
         end
