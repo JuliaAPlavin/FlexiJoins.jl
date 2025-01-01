@@ -373,8 +373,8 @@ end
     using Accessors
     using Distances: Euclidean
 
-    @test string(by_key(@optic(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3)) & not_same()) ==
-        "by_key((@optic _.a[12]) == (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Distances.Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0) & not_same(order_matters=true)"
+    @test string(by_key(@o(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3)) & not_same()) ==
+        "by_key((@o _.a[12]) == (@o _.b)) & by_key((@o _.key)) & by_pred((@o _.id) < (@o _.id1)) & by_distance(Distances.Euclidean(0.0)((@o _.time), (@o _.time)) <= 3.0) & not_same(order_matters=true)"
 end
 
 @testitem "join modes" begin
