@@ -64,9 +64,10 @@ function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
 
     ngroups = 0
     groups = _similar(X, Int)
-    dct = Dict{Core.Compiler.return_type(keyfunc, Tuple{eltype(X)}), Int}()
-    @inbounds for (i, x) in pairs(X)
-        group_id = get!(dct, keyfunc(x), ngroups + 1)
+    xkeys = mapview(keyfunc, X)
+    dct = Dict{eltype(xkeys), Int}()
+    @inbounds for (i, xkey) in pairs(xkeys)
+        group_id = get!(dct, xkey, ngroups + 1)
         if group_id == ngroups + 1
             ngroups += 1
         end
@@ -99,13 +100,11 @@ end
 # first/last match only
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first), typeof(last)})
     keyfunc = last(cond.keyfuncs)
-    dct = Dict{
-        Core.Compiler.return_type(keyfunc, Tuple{eltype(X)}),
-        keytype(X)
-    }()
-    for (i, x) in pairs(X)
-        multi === first && get!(dct, keyfunc(x), i)
-        multi === last && (dct[keyfunc(x)] = i)
+    xkeys = mapview(keyfunc, X)
+    dct = Dict{eltype(xkeys), keytype(X)}()
+    for (i, xkey) in pairs(xkeys)
+        multi === first && get!(dct, xkey, i)
+        multi === last && (dct[xkey] = i)
     end
     return dct
 end
