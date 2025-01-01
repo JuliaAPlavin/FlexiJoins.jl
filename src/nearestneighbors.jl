@@ -45,7 +45,7 @@ function inrange_rect!(tree::KDTree, a, b, idxs, index=1)
             all(a .<= tree.data[idx] .<= b) && push!(idxs, tree.indices[z])
         end
     else
-        (; split_val, split_dim) = tree.nodes[index]
+        split_val, split_dim = tree.split_vals[index], tree.split_dims[index]
         a[split_dim] <= split_val && inrange_rect!(tree, a, b, idxs,  getleft(index))
         b[split_dim] >= split_val && inrange_rect!(tree, a, b, idxs, getright(index))
     end
