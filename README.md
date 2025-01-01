@@ -42,4 +42,4 @@ innerjoin(
 )
 ```
 
-Documentation with explanations and more examples is available as a [Pluto notebook](https://aplavin.github.io/FlexiJoins.jl/test/examples.html). Please direct usage questions to the [discourse topic](https://discourse.julialang.org/t/ann-flexijoins-jl-fresh-take-on-joining-all-kinds-of-datasets/79655) with the package announcement.
+Documentation with explanations and more examples is available as a [Pluto notebook](https://aplavin.github.io/FlexiJoins.jl/test/examples.html). Please report bugs/issues on github, but direct usage questions to the [discourse topic](https://discourse.julialang.org/t/ann-flexijoins-jl-fresh-take-on-joining-all-kinds-of-datasets/79655).
