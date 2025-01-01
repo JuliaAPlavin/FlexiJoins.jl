@@ -79,7 +79,7 @@ function _joinindices(datas::NTuple{2, Any}, cond::JoinCondition, multi, nonmatc
     end
 
     mode = choose_mode(mode, cond, datas)
-    isnothing(mode) && error("No known mode supported by $cond")
+    isnothing(mode) && error("No known mode supported by $cond\nPass mode=FlexiJoins.Mode.NestedLoop() for nested loop join that always works but performs O(n*m) comparisons.\n")
     IXs = create_ix_array(datas, nonmatches, groupby)
     fill_ix_array!(mode, IXs, datas, cond, multi, nonmatches, groupby, cardinality, cache)
 end
@@ -94,7 +94,7 @@ function which_side_first(datas, cond, multi::Tuple{typeof(identity), typeof(ide
     elseif !isnothing(mode_2)
         Val(2)
     else
-        error("No known mode supported by $cond")
+        error("No known mode supported by $cond\nPass mode=FlexiJoins.Mode.NestedLoop() for nested loop join that always works but performs O(n*m) comparisons.\n")
     end
 end
 which_side_first(datas, cond, multi::Tuple{typeof(identity), Any}, nonmatches, groupby::Nothing, cardinality, mode) = Val(1)
