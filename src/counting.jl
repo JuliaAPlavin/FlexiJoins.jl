@@ -24,7 +24,14 @@ create_cnts(datas, nonmatches, cardinality) = Base.Cartesian.@ntuple 2 i -> let
         min_cnt_type_nonmatches(nonmatches[i]),
         min_cnt_type_cardinality(cardinality[3 - i]), # 3 - i because cardinality is reversed
     )
-    map(Returns(create_zero(T)), datas[i])
+    if T === Nothing
+        # anything with eltype = Nothing, the value isn't actually used
+        (nothing,)
+    else
+        A = similar(datas[i], T)
+        A .= create_zero(T)
+        A
+    end
 end
 
 create_zero(::Type{T}) where {T} = zero(T)
