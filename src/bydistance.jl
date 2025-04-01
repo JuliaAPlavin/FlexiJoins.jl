@@ -42,9 +42,10 @@ function sort_byf(cond::ByDistance)
     x -> first(cond.func_R(x))
 end
 function searchsorted_matchix(cond::ByDistance, a, B, perm)
-    arr = mapview(i -> first(cond.func_R(@inbounds B[i])), perm)
-    val = cond.func_L(a)
-    P = @view perm[searchsortedfirst(arr, first(val) - cond.max):searchsortedlast(arr, first(val) + cond.max)]
+    sf = sort_byf(cond)
+    arr = mapview(i -> sf(@inbounds B[i]), perm)
+    val = first(cond.func_L(a))
+    P = @view perm[searchsortedfirst(arr, val - cond.max):searchsortedlast(arr, val + cond.max)]
     return filter(i -> is_match(cond, a, @inbounds B[i]), P)
 end
 searchsorted_matchix_closest(cond::ByDistance, a, B, perm) =
