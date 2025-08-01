@@ -345,6 +345,25 @@ md"""
 # Advanced Usage
 """
 
+# ╔═╡ a30f42b0-9067-49fd-bf48-3fe7891bc30f
+md"""
+## Getting Match Indices
+
+Sometimes you may need the indices of matching elements rather than the elements themselves. This should be a rare scenario—I would be curious to hear about use cases requiring this.
+
+The `joinindices()` function works exactly like `flexijoin()` but returns pairs of indices instead of the actual data:
+"""
+
+# ╔═╡ 08d5bbb5-dec6-4294-948d-34b5b051e185
+joinindices((O=objects, M=measurements), by_key(:name))
+
+# ╔═╡ 90024bc0-27a6-46f6-a725-fdd338ad8d44
+md"""
+As you can see, the result contains tuples `(i, j)` where `i` is the index in the first dataset (`objects`) and `j` is the index in the second dataset (`measurements`).
+
+You can use these indices to access the original data later: `(objects[i], measurements[j])` for each returned pair `(i, j)`.
+"""
+
 # ╔═╡ e6b9fde7-b8dc-4232-a436-be3ecdd4e113
 md"""
 ## Grouping Results
@@ -1332,6 +1351,9 @@ version = "17.4.0+2"
 # ╟─92fbcc95-d124-4d42-b372-05a3ac8cc3a5
 # ╠═e1eb7521-4b5d-410f-b26a-2ca775610d0c
 # ╟─13fffd4d-32e4-49b1-bb6b-68881cc6c6aa
+# ╟─a30f42b0-9067-49fd-bf48-3fe7891bc30f
+# ╠═08d5bbb5-dec6-4294-948d-34b5b051e185
+# ╟─90024bc0-27a6-46f6-a725-fdd338ad8d44
 # ╟─e6b9fde7-b8dc-4232-a436-be3ecdd4e113
 # ╟─de4bfce5-4872-48e0-9f18-a5b7b93a090c
 # ╠═1305276c-1dfe-4a4e-bf47-edfa2b4bc2a6
