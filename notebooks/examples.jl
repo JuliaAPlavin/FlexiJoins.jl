@@ -56,7 +56,7 @@ Defining features of `FlexiJoins` that make it _flexible_:
 md"""
 With all these features, `FlexiJoins` is designed to be easy to use and fast:
 - Uniform interface to all functionality
-- Performance close to other, less general, solutions: see [benchmarks](https://aplavin.github.io/FlexiJoins.jl/test/benchmarks.html)
+- Performance close to other, less general, solutions: see [benchmarks](https://aplavin.github.io/FlexiJoins.jl/notebooks/benchmarks.html)
 - Extensible in terms of both new join conditions and more specialized algorithms; see source code
 """
 
