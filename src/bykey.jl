@@ -55,15 +55,19 @@ searchsorted_matchix(cond::ByKey, a, B, perm) =
 # Hash implementation
 supports_mode(::Mode.Hash, ::ByKey, datas) = true
 
+_similar(X, T::Type) = similar(X, T)
+_similar(X::NTuple{N,<:Any}, T::Type) where {N} = collect(ntuple(i -> zero(T), N))
+
 # return all matches, multi=identity
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::typeof(identity))
     keyfunc = last(cond.keyfuncs)
 
     ngroups = 0
-    groups = similar(X, Int)
-    dct = Dict{Core.Compiler.return_type(keyfunc, Tuple{valtype(X)}), Int}()
-    @inbounds for (i, x) in pairs(X)
-        group_id = get!(dct, keyfunc(x), ngroups + 1)
+    groups = _similar(X, Int)
+    xkeys = mapview(keyfunc, X)
+    dct = Dict{eltype(xkeys), Int}()
+    @inbounds for (i, xkey) in pairs(xkeys)
+        group_id = get!(dct, xkey, ngroups + 1)
         if group_id == ngroups + 1
             ngroups += 1
         end
@@ -96,13 +100,11 @@ end
 # first/last match only
 function prepare_for_join(::Mode.Hash, X, cond::ByKey, multi::Union{typeof(first), typeof(last)})
     keyfunc = last(cond.keyfuncs)
-    dct = Dict{
-        Core.Compiler.return_type(keyfunc, Tuple{valtype(X)}),
-        keytype(X)
-    }()
-    for (i, x) in pairs(X)
-        multi === first && get!(dct, keyfunc(x), i)
-        multi === last && (dct[keyfunc(x)] = i)
+    xkeys = mapview(keyfunc, X)
+    dct = Dict{eltype(xkeys), keytype(X)}()
+    for (i, xkey) in pairs(xkeys)
+        multi === first && get!(dct, xkey, i)
+        multi === last && (dct[xkey] = i)
     end
     return dct
 end

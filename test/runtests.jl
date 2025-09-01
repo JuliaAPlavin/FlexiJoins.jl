@@ -79,8 +79,9 @@ using TestItemRunner
     @test joinindices(OM, by_key(:obj) & by_pred(:value, <, :time); multi=(M=closest,)) ==
         [(O=1, M=1), (O=2, M=5)]
 
-    @test_throws ErrorException joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
-    @test_throws ErrorException joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), groupby=:M)
+    @test_throws "arguments don't make sense together" joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), nonmatches=keep)
+    @test_throws "Unsupported parameter combination" joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), groupby=:M)
+    @test_throws "has no field XXX" joinindices(OM, by_key(@optic(_.obj)); multi=(M=first,), groupby=:XXX)
 end
 
 @testitem "not_same" begin
@@ -197,6 +198,9 @@ end
         @test J2.J.M1 == J3.M1
         @test J2.M2 == J3.M2
         @test innerjoin((__=J1, M2=measurements), by_key(:obj ∘ :O, :obj)) == J3
+        @test_broken innerjoin((__=J1, M2=measurements), by_key(O=:obj, M2=:obj)) == J3  # should this work?
+        @test_broken innerjoin((__=J1, M2=measurements), by_key(O=:obj, M2=:obj); groupby=:O)  # should this work?
+        @test_broken innerjoin((__=J1, M2=measurements), by_key(__=x->x.o.obj, M2=:obj); groupby=:O)  # should this work?
 
         J4 = innerjoin((_=J1, __=StructArray(measurements)), by_key(:obj ∘ :O, :obj))
         @test J2.J.O == J4.O
@@ -329,38 +333,48 @@ end
 end
 
 @testitem "cardinality" begin
-    objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
-    measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
-    OM = (;O=objects, M=measurements)
+    OM = (;O=["A", "B", "D", "E"], M=["A", "A", "B", "B", "C", "C", "C"])
 
-    @test_throws "got 2, expected 1" joinindices(OM, by_key(:obj); cardinality=(O=1, M=1))
-    @test_throws "got 1, expected 0" joinindices(OM, by_key(:obj); cardinality=(O=*, M=0))
-    @test_throws "got 1, expected 0" joinindices(OM, by_key(:obj); cardinality=(O=0, M=*))
-    @test_throws "got 0, expected +" joinindices(OM, by_key(:obj); cardinality=(O=*, M=+))
-    @test_throws "got 0, expected +" joinindices(OM, by_key(:obj); cardinality=(O=+, M=*))
-    @test_throws "got 0, expected +" joinindices(OM, by_key(:obj); cardinality=(O=+, M=+))
-    @test_throws "got 0, expected +" joinindices(OM, by_key(:obj); cardinality=(M=+,))
-    @test_throws "got 2, expected 0:1" joinindices(OM, by_key(:obj); cardinality=(M=0:1,))
-    @test_throws "got 0, expected 1:3" joinindices(OM, by_key(:obj); cardinality=(O=1:3,))
-    J = joinindices(OM, by_key(:obj))
-    @test joinindices(OM, by_key(:obj); cardinality=(M=*,)) == J
-    @test joinindices(OM, by_key(:obj); cardinality=(M=0:4,)) == J
-    @test joinindices(OM, by_key(:obj); cardinality=(O=0:1,)) == J
-    @test joinindices(OM, by_key(:obj); cardinality=(M=0:4, O=0:1)) == J
-    @test joinindices(OM, by_key(:obj); cardinality=(0:1, 0:4)) == J
-    joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 1))
-    joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, +))
-    joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(O=+,))
-    @test_throws "got 1, expected 0" joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 0))
-    @test_throws "got 1, expected 2:100" joinindices((;O=objects, O2=objects), by_key(:obj); cardinality=(1, 2:100))
+    J = joinindices(OM, by_key(identity))
+    @test joinindices(OM, by_key(identity); cardinality=*) == J
+    @test joinindices(OM, by_key(identity); cardinality=(M=*,)) == J
+    @test joinindices(OM, by_key(identity); cardinality=(M=0:4,)) == J
+    @test joinindices(OM, by_key(identity); cardinality=(O=0:1,)) == J
+    @test joinindices(OM, by_key(identity); cardinality=(M=0:4, O=0:1)) == J
+    @test joinindices(OM, by_key(identity); cardinality=(0:1, 0:4)) == J
+    @test_throws "exceeded: got 2, expected 1" joinindices(OM, by_key(identity); cardinality=(O=1, M=1))
+    @test_throws "exceeded: got 1, expected 0" joinindices(OM, by_key(identity); cardinality=(O=*, M= ==(0)))
+    @test_throws "exceeded: got 1, expected 0" joinindices(OM, by_key(identity); cardinality=(O=0, M=*))
+    @test_throws "mismatch: got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O=*, M=+))
+    @test_throws "mismatch: got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O = >(0), M=*))
+    @test_throws "mismatch: got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(O = >(0), M=+))
+    @test_throws "mismatch: got 0, expected >(0)" joinindices(OM, by_key(identity); cardinality=(M = >(0),))
+    @test_throws "exceeded: got 2, expected 0:1" joinindices(OM, by_key(identity); cardinality=(M=0:1,))
+    @test_throws "mismatch: got 0, expected 1:3" joinindices(OM, by_key(identity); cardinality=(O=1:3,))
+
+    J = joinindices((;O=OM.O, O2=OM.O), by_key(identity))
+    @test joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=1) == J
+    @test joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, 1)) == J
+    @test joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, +)) == J
+    @test joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(O=+,)) == J
+    @test_throws "exceeded: got 1, expected 0" joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, 0))
+    @test_throws "mismatch: got 1, expected 2:100" joinindices((;O=OM.O, O2=OM.O), by_key(identity); cardinality=(1, 2:100))
+
+    J = joinindices((;M=OM.M, M2=OM.M), by_key(identity))
+    @test joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=2:3) == J
+    @test joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(2:4, 2:3)) == J
+    @test joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(2:3, +)) == J
+    @test joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(M=+,)) == J
+    @test_throws "exceeded: got 1, expected 0" joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(1, 0))
+    @test_throws "mismatch: got 2, expected 3:100" joinindices((;M=OM.M, M2=OM.M), by_key(identity); cardinality=(*, 3:100))
 end
 
 @testitem "show" begin
     using Accessors
     using Distances: Euclidean
 
-    @test string(by_key(@optic(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3)) & not_same()) ==
-        "by_key((@optic _.a[12]) == (@optic _.b)) & by_key((@optic _.key)) & by_pred((@optic _.id) < (@optic _.id1)) & by_distance(Distances.Euclidean(0.0)((@optic _.time), (@optic _.time)) <= 3.0) & not_same(order_matters=true)"
+    @test string(by_key(@o(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3)) & not_same()) ==
+        "by_key((@o _.a[12]) == (@o _.b)) & by_key((@o _.key)) & by_pred((@o _.id) < (@o _.id1)) & by_distance(Distances.Euclidean(0.0)((@o _.time), (@o _.time)) <= 3.0) & not_same(order_matters=true)"
 end
 
 @testitem "join modes" begin
@@ -386,11 +400,11 @@ end
                 LR = map(X -> repeat(X, 200), args[1])
                 cond = args[2]
                 joinindices(LR, Base.tail(args)...; kwargs..., mode)
-                timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                allocs = @allocations joinindices(LR, Base.tail(args)...; kwargs..., mode)
                 if cond isa FlexiJoins.ByDistance
-                    @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+                    @test_broken allocs < 150
                 else
-                    @test Base.gc_alloc_count(timed.gcstats) < 150
+                    @test allocs < 150
                 end
             end
         end
@@ -597,11 +611,11 @@ end
                 LR = map(X -> repeat(X, 200), args[1])
                 cond = args[2]
                 joinindices(LR, Base.tail(args)...; kwargs..., mode)
-                timed = @timed joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                allocs = @allocations joinindices(LR, Base.tail(args)...; kwargs..., mode)
                 if cond isa FlexiJoins.ByDistance
-                    @test_broken Base.gc_alloc_count(timed.gcstats) < 150
+                    @test_broken allocs < 150
                 else
-                    @test Base.gc_alloc_count(timed.gcstats) < 150
+                    @test allocs < 150
                 end
             end
         end
@@ -650,6 +664,51 @@ end
     @test normalize_arg(by_key(A=@optic(_.name), B=:obj), (A=[], B=[])) == ByKey((@optic(_.name), @optic(_.obj)))
 end
 
+@testitem "skycoords" begin
+    using SkyCoords
+    using FlexiJoins: Mode
+    using Accessors
+
+    function test_unique_setequal(a, b)
+        @test allunique(a)
+        @test allunique(b)
+        @test issetequal(a, b)
+    end
+
+    function test_modes(modes, args...; alloc=true, kwargs...)
+        base = joinindices(args...; kwargs..., mode=Mode.NestedLoop())
+        @testset for mode in [nothing; modes]
+            cur = joinindices(args...; kwargs..., mode)
+            test_unique_setequal(cur, base)
+
+            if alloc && mode != Mode.NestedLoop() && all(!isempty, args[1])
+                LR = map(X -> repeat(X, 200), args[1])
+                cond = args[2]
+                joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                allocs = @allocations joinindices(LR, Base.tail(args)...; kwargs..., mode)
+                if cond isa FlexiJoins.ByDistance
+                    @test_broken allocs < 150
+                else
+                    @test allocs < 150
+                end
+            end
+        end
+    end
+
+    sides = (
+        L=[ICRSCoords(0, 0), ICRSCoords(0, 0.5), ICRSCoords(0, 1), ICRSCoords(0.5, 0), ICRSCoords(0.5, 0.5), ICRSCoords(0.5, 1), ICRSCoords(1, 0), ICRSCoords(1, 0.5), ICRSCoords(1, 1)],
+        R=[ICRSCoords(0, 0.68), ICRSCoords(0, 0.7), ICRSCoords(0, 0.72), ICRSCoords(4, 0), ICRSCoords(4, 0.5), ICRSCoords(4, 1), ICRSCoords(4.5, 0), ICRSCoords(5.5, 0.5), ICRSCoords(6, 1), ICRSCoords(6, 0), ICRSCoords(6, 0.5), ICRSCoords(6, 1)],
+    )
+    sides = @modify(coo -> (; coo), sides.L |> Elements())
+    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], sides, by_distance(:coo, identity, separation, <=(0.7)))
+    sides = (
+        L=[ICRSCoords(0, 0), ICRSCoords(0, 0.5), ICRSCoords(0, 1), ICRSCoords(0.5, 0), ICRSCoords(0.5, 0.5), ICRSCoords(0.5, 1), ICRSCoords(1, 0), ICRSCoords(1, 0.5), ICRSCoords(1, 1)],
+        R=[GalCoords(4, 0), GalCoords(4, 0.5), GalCoords(4, 1), GalCoords(4.5, 0), GalCoords(5.5, 0.5), GalCoords(6, 1), GalCoords(6, 0), GalCoords(6, 0.5), GalCoords(6, 1)],
+    )
+    sides = @modify(coo -> (; coo), sides.R |> Elements())
+    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], sides, by_distance(identity, :coo, separation, <=(0.7)))
+end
+
 @testitem "other dataset types" begin
     using FlexiJoins: Mode
     using DataPipes
@@ -659,13 +718,17 @@ end
     using Dictionaries
     using DataFrames
 
+    # https://github.com/JuliaLang/julia/pull/49179
+    Base.keytype(@nospecialize t::Tuple) = keytype(typeof(t))
+    Base.keytype(@nospecialize T::Type{<:Tuple}) = Int
+
     objects = [(obj="A", value=2), (obj="B", value=-5), (obj="D", value=1), (obj="E", value=9)]
     measurements = [(obj, time=t) for (obj, cnt) in [("A", 4), ("B", 1), ("C", 3)] for t in cnt .* (2:(cnt+1))]
     expected = [((obj="A", value=2), (obj="A", time=8)), ((obj="A", value=2), (obj="A", time=12)), ((obj="A", value=2), (obj="A", time=16)), ((obj="A", value=2), (obj="A", time=20)), ((obj="B", value=-5), (obj="B", time=2))]
 
     @testset for mode in [nothing, Mode.NestedLoop(), Mode.Sort(), Mode.Hash()]
         @testset "tuple" begin
-            @test_broken flexijoin((Tuple(objects), Tuple(measurements)), by_key(:obj); mode) == expected
+            @test flexijoin((Tuple(objects), Tuple(measurements)), by_key(:obj); mode) == expected
         end
 
         @testset "pairs" begin
@@ -700,7 +763,7 @@ end
             end
         end
 
-        VERSION >= v"1.9-DEV" && @testset "dataframe" begin
+        @testset "dataframe" begin
             odf = DataFrame(objects)
             mdf = DataFrame(measurements)
             edf = @p expected |> map((;_[1]..., obj_1=_[2].obj, _[2].time)) |> DataFrame
@@ -718,6 +781,6 @@ end
     CHL.@check()
 
     import Aqua
-    Aqua.test_all(FlexiJoins; ambiguities=false, piracy=false, project_toml_formatting=false)
+    Aqua.test_all(FlexiJoins; ambiguities=false, piracies=false)
     Aqua.test_ambiguities(FlexiJoins)
 end

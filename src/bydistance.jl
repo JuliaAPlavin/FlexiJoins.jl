@@ -25,7 +25,7 @@ by_distance(:time, x -> minimum(x.times), Euclidean(), <=(3))
 ```
 """
 by_distance(func, dist, maxpred::Base.Fix2) = by_distance(func, func, dist, maxpred)
-by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(normalize_keyfunc(func_L), normalize_keyfunc(func_R), dist, maxpred.f, Float64(maxpred.x))
+by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(normalize_keyfunc(func_L), normalize_keyfunc(func_R), dist, maxpred.f, convert(Float64, maxpred.x))
 
 supports_mode(::Mode.NestedLoop, ::ByDistance, datas) = true
 is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by.max)
@@ -42,9 +42,10 @@ function sort_byf(cond::ByDistance)
     x -> first(cond.func_R(x))
 end
 function searchsorted_matchix(cond::ByDistance, a, B, perm)
-    arr = mapview(i -> first(cond.func_R(@inbounds B[i])), perm)
-    val = cond.func_L(a)
-    P = @view perm[searchsortedfirst(arr, first(val) - cond.max):searchsortedlast(arr, first(val) + cond.max)]
+    sf = sort_byf(cond)
+    arr = mapview(i -> sf(@inbounds B[i]), perm)
+    val = first(cond.func_L(a))
+    P = @view perm[searchsortedfirst(arr, val - cond.max):searchsortedlast(arr, val + cond.max)]
     return filter(i -> is_match(cond, a, @inbounds B[i]), P)
 end
 searchsorted_matchix_closest(cond::ByDistance, a, B, perm) =
