@@ -42,4 +42,16 @@ innerjoin(
 )
 ```
 
-Documentation with explanations and more examples is available as a [Pluto notebook](https://aplavin.github.io/FlexiJoins.jl/test/examples.html). Please report bugs/issues on github, but direct usage questions to the [discourse topic](https://discourse.julialang.org/t/ann-flexijoins-jl-fresh-take-on-joining-all-kinds-of-datasets/79655).
+See [documentation](https://aplavin.github.io/FlexiJoins.jl/notebooks/examples.html) for more details and examples.
+
+# Integrations
+
+FlexiJoins is extensible: there are integrations with a number of packages, providing more specialized join conditions where it makes sense.
+Featured integrations include:
+- by-uncertainty joining with [Uncertain.jl](https://github.com/JuliaAPlavin/Uncertain.jl) – effectively, a distance join with different thresholds for each element
+- spatial joins with [GeometryOps.jl](https://github.com/JuliaGeo/GeometryOps.jl)
+- astronomical catalogs matching with [SkyCoords.jl](https://github.com/JuliaAstro/SkyCoords.jl) – see [quickstart and examples](https://aplavin.github.io/FlexiJoins.jl/notebooks/skycoords.html)
+
+# Contributing
+
+Please report bugs/issues on github, and direct usage questions to the [discourse topic](https://discourse.julialang.org/t/ann-flexijoins-jl-fresh-take-on-joining-all-kinds-of-datasets/79655).

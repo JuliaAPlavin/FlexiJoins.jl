@@ -41,6 +41,8 @@ This notebook demonstrates spatial joining of astronomical catalogs using FlexiJ
 5. Handling position uncertainties
 
 The examples show practical astronomical use cases for coordinate-based joins.
+
+For more details, explanations, and advanced features, see the [general FlexiJoins.jl documentation](https://aplavin.github.io/FlexiJoins.jl/notebooks/examples.html).
 """
 
 # ╔═╡ 58d450f4-4bd9-4264-a684-50175b346b74
@@ -2302,7 +2304,7 @@ version = "4.1.0+0"
 # ╟─c9d0e1f2-a3b4-5678-9012-345678cdefab
 # ╠═b934cdaa-848c-11f0-086c-71a0eea698e2
 # ╠═d0e1f2a3-b4c5-6789-0123-456789defabc
-# ╠═a3b4c5d6-e7f8-9012-3456-789012abcdef
+# ╟─a3b4c5d6-e7f8-9012-3456-789012abcdef
 # ╠═5a03beea-adde-485d-9b9f-dd00b81185bf
 # ╟─c5d6e7f8-a9b0-1234-5678-901234cdefab
 # ╠═a1b2c3d4-e5f6-7890-1234-567890abcdef
