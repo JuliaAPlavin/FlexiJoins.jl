@@ -32,17 +32,24 @@ using StructArrays
 md"""
 # Astronomical Catalog Cross-Matching with FlexiJoins.jl
 
-This notebook demonstrates spatial joining of astronomical catalogs using FlexiJoins.jl. We'll cover:
+This notebook demonstrates spatial joining of astronomical catalogs using `FlexiJoins.jl`. We cover:
+- Cross-matching catalogs by angular separation
+- Finding the closest matches
+- Handling coordinate uncertainties
 
-1. Loading Gaia catalog data via TAP service
-2. Creating a target observation catalog
-3. Cross-matching by angular separation
-4. Finding nearest neighbors
-5. Handling position uncertainties
+The examples showcase practical astronomical applications of coordinate-based joins.
 
-The examples show practical astronomical use cases for coordinate-based joins.
+---
 
-For more details, explanations, and advanced features, see the [general FlexiJoins.jl documentation](https://aplavin.github.io/FlexiJoins.jl/notebooks/examples.html).
+This notebook highlights astronomy-specific functionality in `FlexiJoins.jl`. However, all the standard FlexiJoins features are fully applicable to astronomical catalogs as well:
+
+- Handling non-matches with different join types (inner/left/right/outer joins)
+- Multiple join conditions, such as combining coordinate and time constraints
+- Retrieving element indices instead of elements themselves
+- Multi-way joins across multiple catalogs
+- ...
+
+For comprehensive details, explanations, and examples of these features, see the [general FlexiJoins.jl documentation](https://aplavin.github.io/FlexiJoins.jl/notebooks/examples.html).
 """
 
 # ╔═╡ 58d450f4-4bd9-4264-a684-50175b346b74
@@ -103,7 +110,7 @@ innerjoin(
 
 # ╔═╡ a3b4c5d6-e7f8-9012-3456-789012abcdef
 md"""
-## Find Nearest Neighbors
+## Single Closest Match
 
 Instead of all sources within a radius, we can find the single closest Gaia source for each target using the `multi=closest` option in `FlexiJoins.jl`. This ensures each target gets exactly one match:
 """

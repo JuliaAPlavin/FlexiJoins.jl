@@ -568,7 +568,7 @@ md"""
 Featured integrations include:
 - By-uncertainty joining with [Uncertain.jl](https://github.com/JuliaAPlavin/Uncertain.jl) – effectively, a distance join with different thresholds for each element
 - Spatial joins with [GeometryOps.jl](https://github.com/JuliaGeo/GeometryOps.jl)  
-- Astronomical catalog matching with [SkyCoords.jl](https://github.com/JuliaAstro/SkyCoords.jl)
+- Astronomical catalog matching with [SkyCoords.jl](https://github.com/JuliaAstro/SkyCoords.jl) – see [quickstart and examples](https://aplavin.github.io/FlexiJoins.jl/notebooks/skycoords.html)
 """
 
 # ╔═╡ 89815677-ca70-4892-ad9d-6cf223dde953
@@ -1395,11 +1395,11 @@ version = "17.4.0+2"
 # ╠═e3d82dd1-8471-4ea3-9086-20e379c32d04
 # ╠═26c60c52-8356-4ca2-9c0c-7feac572f66c
 # ╠═dad8765b-1af5-4b42-bf89-1ca5728ba9de
-# ╠═a847c938-c533-45ea-aa0b-f6c404d7fe61
+# ╟─a847c938-c533-45ea-aa0b-f6c404d7fe61
 # ╟─00f6d1d7-3ee1-47b4-8dfe-37399613547f
 # ╠═4fda4c8e-8d7f-4341-a2e6-3db18292e50e
 # ╟─5f0b9787-259c-42ca-82b8-d393e470db8e
-# ╠═162ddf72-620f-49cc-80fa-c6557b253933
+# ╟─162ddf72-620f-49cc-80fa-c6557b253933
 # ╠═89815677-ca70-4892-ad9d-6cf223dde953
 # ╠═00de59c6-cc7a-4587-acb1-6f410bf4a587
 # ╠═de0d3622-3c83-40d7-97e9-9443053ed921
