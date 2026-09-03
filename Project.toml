@@ -25,7 +25,7 @@ SkyCoordsExt = "SkyCoords"
 
 [compat]
 Accessors = "0.1.9"
-ArraysOfArrays = "0.5.8, 0.6"
+ArraysOfArrays = "0.5.8, 0.6, 1"
 DataAPI = "1.9.0"
 DataFrames = "1"
 DataPipes = "0.2.10, 0.3"
