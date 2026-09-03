@@ -419,6 +419,7 @@ end
             (by_key(x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()], (;)),
             (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
             (by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
+            (by_distance(x -> SVector(0, x.value), x -> SVector(0., x.time), Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
             (by_pred(:obj, ==, :obj), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
             (by_pred(:obj, ==, x -> x.obj == "B" ? nothing : x.obj), [Mode.NestedLoop(), Mode.Hash()], (;)),
             (by_pred(:value, <, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
@@ -629,7 +630,6 @@ end
             (by_key(@optic(_.obj)), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
             # Sort differs:
             # (by_distance(:value, :time, Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
-            (by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)), [Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;)),
             (by_pred(:obj, isequal, :obj), [Mode.NestedLoop(), Mode.Sort(), Mode.Hash()], (;)),
             # Hash mode differs:
             # (by_pred(:value, ==, :time), [Mode.NestedLoop(), Mode.Sort()], (;)),
@@ -650,6 +650,9 @@ end
         ]
         test_modes(modes, OM, cond; alloc=false)
     end
+
+    # by_distance: exclude NaNs
+    test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;O=objects, M=filter(x -> !isnan(x.time), measurements)), by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)); alloc=false)
 end
 
 
