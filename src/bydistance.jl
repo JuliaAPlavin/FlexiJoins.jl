@@ -36,8 +36,9 @@ findmatchix(mode::Mode.NestedLoop, cond::ByDistance, ix_a, a, B, multi::Closest)
 
 supports_mode(::Mode.Sort, ::ByDistance, datas) = true
 function sort_byf(cond::ByDistance)
-    # check cond.dist isa NN.MinkowskiMetric, without depending on NN.jl:
-    nameof(typeof(cond.dist)) ∈ (:Euclidean, :Chebyshev, :Cityblock, :Minkowski, :WeightedEuclidean, :WeightedCityblock, :WeightedMinkowski) ||
+    # check cond.dist is an unweighted Minkowski metric, without depending on NN.jl
+    # weighted metrics aren't included: with weights < 1, matches can be further than max in the sorted coordinate
+    nameof(typeof(cond.dist)) ∈ (:Euclidean, :Chebyshev, :Cityblock, :Minkowski) ||
         @warn "Joining by distance using componentwise sorting, this doesn't work for all distance types" cond.dist maxlog=1
     x -> sort_coord(cond.func_R(x))
 end
