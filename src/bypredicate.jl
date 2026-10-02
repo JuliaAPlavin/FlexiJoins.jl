@@ -43,9 +43,7 @@ by_pred(Lf, pred::typeof(≈), Rf; atol) = by_pred(Lf, ∈, Base.Fix2(±, atol) 
 # always supports nested loop
 supports_mode(::Mode.NestedLoop, ::ByPred, datas) = true
 is_match(by::ByPred, a, b) = by.pred(by.Lf(a), by.Rf(b))
-findmatchix(mode::Mode.NestedLoop, cond::ByPred{<:Union{typeof.((<, <=, >=, >))...}}, ix_a, a, B, multi::Closest) =
-    @p findmatchix(mode, cond, ix_a, a, B, identity) |>
-        firstn_by!(by=i -> abs(cond.Lf(a) - cond.Rf(B[i])))
+closeness(cond::ByPred{<:Union{typeof.((<, <=, >=, >))...}}, a, b) = abs(cond.Lf(a) - cond.Rf(b))
 
 # support Hash for equality and subset
 supports_mode(::Mode.Hash, ::ByPred{<:_EQUAL_F}, datas) = true

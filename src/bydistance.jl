@@ -29,9 +29,7 @@ by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(normalize_key
 
 supports_mode(::Mode.NestedLoop, ::ByDistance, datas) = true
 is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by.max)
-findmatchix(mode::Mode.NestedLoop, cond::ByDistance, ix_a, a, B, multi::Closest) =
-    @p findmatchix(mode, cond, ix_a, a, B, identity) |>
-        firstn_by!(by=i -> cond.dist(cond.func_L(a), cond.func_R(B[i])))
+closeness(cond::ByDistance, a, b) = cond.dist(cond.func_L(a), cond.func_R(b))
 
 
 supports_mode(::Mode.Sort, ::ByDistance, datas) = true

@@ -44,6 +44,9 @@ findmatchix(::Union{Mode.NestedLoop, Mode.NestedLoopFast}, cond::JoinCondition, 
         Iterators.filter(is_match(cond, ix_a, a, _[1], _[2])) |>
         map(_[1])
 is_match(cond, ix_a, a, ix_b, b) = is_match(cond, a, b)
+findmatchix(mode::Mode.NestedLoop, cond::JoinCondition, ix_a, a, B, multi::Closest) =
+    @p findmatchix(mode, cond, ix_a, a, B, identity) |>
+        firstn_by!(by=i -> closeness(cond, a, B[i]))
 
 
 matchix_postprocess_multi(IX, ::typeof(identity)) = IX
@@ -77,6 +80,9 @@ Base.:(&)(a::JoinCondition, b::JoinCondition) = CompositeCondition((a, b))
 Base.:(&)(a::CompositeCondition, b::JoinCondition) = CompositeCondition((a.conds..., b))
 Base.:(&)(a::JoinCondition, b::CompositeCondition) = CompositeCondition((a, b.conds))
 Base.:(&)(a::CompositeCondition, b::CompositeCondition) = CompositeCondition((a.conds..., b.conds...))
+
+# closest is determined by the last condition, as in searchsorted_matchix_closest below
+closeness(cond::CompositeCondition, a, b) = closeness(last(cond.conds), a, b)
 
 swap_sides(c::CompositeCondition) = CompositeCondition(map(swap_sides, c.conds))
 
