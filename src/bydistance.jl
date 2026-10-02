@@ -39,18 +39,22 @@ function sort_byf(cond::ByDistance)
     # check cond.dist isa NN.MinkowskiMetric, without depending on NN.jl:
     nameof(typeof(cond.dist)) ∈ (:Euclidean, :Chebyshev, :Cityblock, :Minkowski, :WeightedEuclidean, :WeightedCityblock, :WeightedMinkowski) ||
         @warn "Joining by distance using componentwise sorting, this doesn't work for all distance types" cond.dist
-    x -> first(cond.func_R(x))
+    x -> sort_coord(cond.func_R(x))
 end
 function searchsorted_matchix(cond::ByDistance, a, B, perm)
     sf = sort_byf(cond)
     arr = mapview(i -> sf(@inbounds B[i]), perm)
-    val = first(cond.func_L(a))
+    val = sort_coord(cond.func_L(a))
     P = @view perm[searchsortedfirst(arr, val - cond.max):searchsortedlast(arr, val + cond.max)]
     return filter(i -> is_match(cond, a, @inbounds B[i]), P)
 end
 searchsorted_matchix_closest(cond::ByDistance, a, B, perm) =
     @p searchsorted_matchix(cond, a, B, perm) |>
         firstn_by!(by=i -> cond.dist(cond.func_L(a), cond.func_R(B[i])))
+
+# the coordinate that Sort mode sorts and searches by
+sort_coord(x) = x
+sort_coord(x::Union{AbstractVector, Tuple}) = first(x)
 
 
 supports_mode(::Mode.Tree, ::ByDistance, datas) = true

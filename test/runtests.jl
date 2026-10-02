@@ -673,9 +673,11 @@ end
         @test joinindices(LR, by_distance(:p, Euclidean(), <=(1u"m")); mode) == [(L=1, R=1)]
     end
 
-    # Period limit
+    # DateTime keys, Period limit
     LR = (L=[(; t=DateTime(2020, 1, 1, 0, 0, 10))], R=[(; t=DateTime(2020, 1, 1, 0, 0, 12)), (; t=DateTime(2020, 1, 1, 0, 15)), (; t=DateTime(2020, 1, 1, 0, 9))])
-    @test joinindices(LR, by_distance(:t, (a, b) -> abs(a - b), <=(Minute(10))); mode=Mode.NestedLoop()) == [(L=1, R=1), (L=1, R=3)]
+    @testset for mode in [Mode.NestedLoop(), Mode.Sort()]
+        @test joinindices(LR, by_distance(:t, (a, b) -> abs(a - b), <=(Minute(10))); mode) == [(L=1, R=1), (L=1, R=3)]
+    end
 end
 
 
