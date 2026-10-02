@@ -374,7 +374,7 @@ end
     using Distances: Euclidean
 
     @test string(by_key(@o(_.a[12]), :b) & by_key(:key) & by_pred(:id, <, :id1) & by_distance(:time, Euclidean(), <=(3)) & not_same()) ==
-        "by_key((@o _.a[12]) == (@o _.b)) & by_key((@o _.key)) & by_pred((@o _.id) < (@o _.id1)) & by_distance(Distances.Euclidean(0.0)((@o _.time), (@o _.time)) <= 3.0) & not_same(order_matters=true)"
+        "by_key((@o _.a[12]) == (@o _.b)) & by_key((@o _.key)) & by_pred((@o _.id) < (@o _.id1)) & by_distance(Distances.Euclidean(0.0)((@o _.time), (@o _.time)) <= 3) & not_same(order_matters=true)"
 end
 
 @testitem "join modes" begin
@@ -653,6 +653,29 @@ end
 
     # by_distance: exclude NaNs
     test_modes([Mode.NestedLoop(), Mode.Sort(), Mode.Tree()], (;O=objects, M=filter(x -> !isnan(x.time), measurements)), by_distance(x -> SVector(0, x.value), x -> SVector(0, x.time), Euclidean(), <=(3)); alloc=false)
+end
+
+@testitem "by_distance key types and metrics" begin
+    using FlexiJoins: Mode
+    using Distances
+    using StaticArrays
+    using Unitful
+    using Dates
+
+    # Unitful limit
+    LR = (L=[(; t=10.0u"s")], R=[(; t=12.0u"s"), (; t=900.0u"s"), (; t=-500.0u"s")])
+    @testset for mode in [Mode.NestedLoop(), Mode.Sort()]
+        @test joinindices(LR, by_distance(:t, Euclidean(), <=(600u"s")); mode) == [(L=1, R=1), (L=1, R=3)]
+        @test joinindices(LR, by_distance(:t, Euclidean(), <=(10u"minute")); mode) == [(L=1, R=1), (L=1, R=3)]
+    end
+    LR = (L=[(; p=SVector(0.0, 0.0)u"m")], R=[(; p=SVector(0.5, 0.5)u"m"), (; p=SVector(5.0, 0.0)u"m")])
+    @testset for mode in [Mode.NestedLoop(), Mode.Sort()]
+        @test joinindices(LR, by_distance(:p, Euclidean(), <=(1u"m")); mode) == [(L=1, R=1)]
+    end
+
+    # Period limit
+    LR = (L=[(; t=DateTime(2020, 1, 1, 0, 0, 10))], R=[(; t=DateTime(2020, 1, 1, 0, 0, 12)), (; t=DateTime(2020, 1, 1, 0, 15)), (; t=DateTime(2020, 1, 1, 0, 9))])
+    @test joinindices(LR, by_distance(:t, (a, b) -> abs(a - b), <=(Minute(10))); mode=Mode.NestedLoop()) == [(L=1, R=1), (L=1, R=3)]
 end
 
 

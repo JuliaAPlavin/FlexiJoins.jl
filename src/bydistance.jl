@@ -1,9 +1,9 @@
-struct ByDistance{TFL, TFR, TD, TP <: Union{typeof.((<, <=))...}} <: JoinCondition
+struct ByDistance{TFL, TFR, TD, TP <: Union{typeof.((<, <=))...}, TM} <: JoinCondition
     func_L::TFL
     func_R::TFR
     dist::TD
     pred::TP
-    max::Float64
+    max::TM
 end
 
 Base.show(io::IO, c::ByDistance) = print(io, "by_distance(", c.dist, '(', c.func_L, ", ", c.func_R, ") ", c.pred, ' ', c.max, ")")
@@ -25,7 +25,7 @@ by_distance(:time, x -> minimum(x.times), Euclidean(), <=(3))
 ```
 """
 by_distance(func, dist, maxpred::Base.Fix2) = by_distance(func, func, dist, maxpred)
-by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(normalize_keyfunc(func_L), normalize_keyfunc(func_R), dist, maxpred.f, convert(Float64, maxpred.x))
+by_distance(func_L, func_R, dist, maxpred::Base.Fix2) = ByDistance(normalize_keyfunc(func_L), normalize_keyfunc(func_R), dist, maxpred.f, maxpred.x)
 
 supports_mode(::Mode.NestedLoop, ::ByDistance, datas) = true
 is_match(by::ByDistance, a, b) = by.pred(by.dist(by.func_L(a), by.func_R(b)), by.max)
